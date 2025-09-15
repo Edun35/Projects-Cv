@@ -1,0 +1,49 @@
+00001000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.16.01
+Created On: 27/01/2025 12:07:47
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * Title      :
+00000000                             3  * Written by :
+00000000                             4  * Date       :
+00000000                             5  * Description:
+00000000                             6  *-----------------------------------------------------------
+00001000                             7      ORG    $1000
+00001000                             8  START:                  ; first instruction of program
+00001000                             9      
+00001000  7005                      10      MOVE.L #%101, D0
+00001002  223C 00000101             11      MOVE.L #$101, D1
+00001008  7465                      12      MOVE.L #101, D2
+0000100A  21C0 3030                 13      MOVE.L D0, $3030
+0000100E  21C1 3040                 14      MOVE.L D1, $3040
+00001012  21C2 3050                 15      MOVE.L D2, $3050
+00001016                            16      
+00001016  31FC 0066 3020            17      MOVE.W #102, $3020
+0000101C  31FC 0102 3010            18      MOVE.W #$102, $3010
+00001022  31FC 0004 3000            19      MOVE.W #%100, $3000
+00001028  3038 3020                 20      MOVE.W $3020, D0
+0000102C  3238 3010                 21      MOVE.W $3010, D1
+00001030  3438 3000                 22      MOVE.W $3000, D2
+00001034                            23      
+00001034  11C0 3020                 24      MOVE.B D0, $3020
+00001038  11C1 3010                 25      MOVE.B D1, $3010
+0000103C  11C2 3000                 26      MOVE.B D2, $3000
+00001040  11FC 0069 3020            27      MOVE.B #105, $3020
+00001046  11FC 0072 3010            28      MOVE.B #$72, $3010
+0000104C  11FC 00FF 3000            29      MOVE.B #%11111111, $3000
+00001052                            30  * Put program code here
+00001052                            31  
+00001052  FFFF FFFF                 32      SIMHALT             ; halt simulator
+00001056                            33  
+00001056                            34  * Put variables and constants here
+00001056                            35  
+00001056                            36      END    START        ; last line of source
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+START               1000

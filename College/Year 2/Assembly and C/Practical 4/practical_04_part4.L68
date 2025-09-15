@@ -1,0 +1,63 @@
+00001000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.16.01
+Created On: 04/02/2025 12:17:09
+
+00001000                             1      ORG    $1000
+00001000                             2  START:   
+00001000  47F9 00001050              3      LEA HEALTH, A3
+00001006  49F9 00001051              4      LEA BOSS_HEALTH, A4
+0000100C                             5      
+0000100C  6100 0002                  6      BSR PLAYER_TURN
+00001010                             7  
+00001010                             8  PLAYER_TURN:
+00001010                             9      ;IF LESS THAN 50 HEAL ELSE ATTACK
+00001010  0C13 0032                 10      CMP.B #50, (A3)
+00001014  6D00 0018                 11      BLT PLAYER_HEAL
+00001018  6E00 0006                 12      BGT PLAYER_ATTACK
+0000101C                            13  
+0000101C                            14  BOSS_TURN:
+0000101C  6000 0016                 15      BRA BOSS_ATTACK
+00001020                            16      
+00001020                            17  PLAYER_ATTACK:
+00001020  0414 000A                 18      SUB.B #10, (A4)
+00001024                            19      ;CHECK BOSS HEALTH IF 0 GAME OVER
+00001024  0C13 0000                 20      CMP.B #0, (A3)
+00001028  6700 0010                 21      BEQ GAME_END
+0000102C  66EE                      22      BNE BOSS_TURN
+0000102E                            23      
+0000102E                            24  PLAYER_HEAL:
+0000102E  0613 003C                 25      ADD.B #60, (A3)
+00001032  60E8                      26      BRA BOSS_TURN
+00001034                            27  
+00001034                            28  BOSS_ATTACK:
+00001034  0413 0014                 29      SUB.B #20, (A3)
+00001038  60D6                      30      BRA PLAYER_TURN
+0000103A                            31      
+0000103A                            32  GAME_END:
+0000103A  13FC 0000 00001050        33      MOVE.B #$00, HEALTH
+00001042  13FC 0000 00001051        34      MOVE.B #$00, BOSS_HEALTH
+0000104A  4E75                      35      RTS
+0000104C                            36  
+0000104C  FFFF FFFF                 37      SIMHALT             
+00001050                            38      
+00001050= 64                        39  HEALTH DC.B $64
+00001051= 64                        40  BOSS_HEALTH DC.B $64
+00001052                            41  
+00001052                            42      END    START       
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+BOSS_ATTACK         1034
+BOSS_HEALTH         1051
+BOSS_TURN           101C
+GAME_END            103A
+HEALTH              1050
+PLAYER_ATTACK       1020
+PLAYER_HEAL         102E
+PLAYER_TURN         1010
+START               1000

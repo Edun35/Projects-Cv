@@ -1,0 +1,1802 @@
+00001000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.16.01
+Created On: 14/03/2025 09:21:11
+
+00000000                             1  *-------------------------------------------------------------------
+00000000                             2  * Title      :  SMALL WORLD
+00000000                             3  * Written by :  EVAN DUNPHY C00303467
+00000000                             4  * Date       :  1 MARCH 2025
+00000000                             5  * Description:  A SMALL GAME. MISSION MODE AND ENDLESS MODE.
+00000000                             6  *               PLAYER EXPLORES A 4*4 RNG MAP. COMPLETE MISSION
+00000000                             7  *               TO WIN. RNG ENEMY, BOSS, SHOP, FIELD, FOREST, EXIT 
+00000000                             8  *               IN SOME TILES.
+00000000                             9  *               ENEMY RESPAWNS ON TILE RE-ENTRY. ENDLESS MODE
+00000000                            10  *               LEVEL COUNT IS SCORE. QUIT BETWEEN LEVELS.
+00000000                            11  *               GAME OVER WHEN HEALTH OR STAMINA IS 0.
+00000000                            12  * 
+00000000                            13  * Bugs       :  LOAD MAP RNG HAPPENS TO QUICK  OR ADDING DELAY SLOWS GAME DOWN
+00000000                            14  *               SEEMS LIKE THE PORTAL DOESNT WORK SOMETIMES. PORTAL IS ADDED TO ARRAY
+00000000                            15  *               BUT WHEN PLAYER GOES THROUGH MAP PORTAL TILE IS NOT THERE.
+00000000                            16  *------------------------------------------------------------------    
+00000000                            17    
+00000000                            18  *-------------------------------------------------------
+00000000                            19  *------------------- COMPARISON VALUES 
+00000000                            20  *-------------------------------------------------------
+00001000                            21      ORG    $1000
+00001000                            22  ;ALL
+00001000  =00000000                 23  MIN_ALL EQU 0 ;MIN VALUE FOR ALL VARS EXCEPT DICE ROLL
+00001000  =00000001                 24  MAX_LEVEL_MISSIONS EQU 1 
+00001000                            25  
+00001000                            26  ;DIRECTION KEYS
+00001000  =00000057                 27  W EQU $57 ;77 
+00001000  =00000041                 28  A EQU $41 ;61
+00001000  =00000053                 29  S EQU $53 ;73
+00001000  =00000044                 30  D EQU $44 ;64
+00001000  =00000031                 31  ONE EQU $31 ;1
+00001000  =00000032                 32  TWO EQU $32 ;2 
+00001000  =00000033                 33  THREE EQU $33 ;3
+00001000  =00000034                 34  FOUR EQU $34 ; 4
+00001000                            35  
+00001000                            36  ;RNG MISSION
+00001000  =00000000                 37  BOSS EQU 0
+00001000  =00000001                 38  BOAT EQU 1
+00001000                            39  
+00001000                            40  ;TILES
+00001000  =00000001                 41  ENEMY_TILE EQU 1
+00001000  =00000002                 42  MOUNTAIN EQU 2
+00001000  =00000003                 43  FOREST EQU 3
+00001000  =00000004                 44  BEACH EQU 4
+00001000  =00000005                 45  TOWN EQU 5
+00001000  =00000006                 46  FIELD EQU 6 
+00001000  =00000007                 47  EXIT_TILE EQU 7 ;BOAT
+00001000  =00000008                 48  BOSS_TILE EQU 8 ;BOSS
+00001000  =00000009                 49  PORTAL_TILE EQU 9 ;PORTAL
+00001000                            50  *-------------------------------------------------------
+00001000                            51  *------------------- LOAD 
+00001000                            52  *-------------------------------------------------------
+00001000                            53  START:              
+00001000  43F9 00003D49             54      LEA START_MSG, A1
+00001006  6100 2BC4                 55      BSR DRAW_STRING 
+0000100A  6100 2BD0                 56      BSR DRAW_NEWLINE
+0000100E                            57      
+0000100E  6000 1FF0                 58      BRA MODE
+00001012                            59  
+00001012                            60  *-------------------------------------------------------
+00001012                            61  *------------------- PLAY MODE LOOP
+00001012                            62  *-------------------------------------------------------
+00003000                            63      ORG $3000
+00003000                            64  MODE:
+00003000  43F9 00003D55             65      LEA MODE_MSG, A1
+00003006  6100 0BC4                 66      BSR DRAW_STRING
+0000300A  6100 0BD0                 67      BSR DRAW_NEWLINE 
+0000300E  6100 0004                 68      BSR MODE_INPUT
+00003012                            69      
+00003012  60EC                      70      BRA MODE
+00003014                            71      
+00003014                            72  *-------------------------------------------------------
+00003014                            73  *------------------- INPUT MISSION CHOICE
+00003014                            74  *-------------------------------------------------------
+00003014                            75  MODE_INPUT:
+00003014  6100 0B9E                 76      BSR GET_INPUT
+00003018  6100 0BC2                 77      BSR DRAW_NEWLINE
+0000301C  B27C 0031                 78      CMP #ONE, D1
+00003020  6700 0014                 79      BEQ CHECK_MISSION
+00003024                            80      
+00003024  B27C 0032                 81      CMP #TWO, D1
+00003028  6700 009C                 82      BEQ ENDLESS
+0000302C                            83      
+0000302C  6100 0BAE                 84      BSR DRAW_NEWLINE
+00003030  6100 0B8A                 85      BSR INVALID_INPUTS
+00003034  4E75                      86      RTS
+00003036                            87      
+00003036                            88  *-------------------------------------------------------
+00003036                            89  *------------------- LOAD MISSION MODE AND LOOP 
+00003036                            90  *-------------------------------------------------------
+00003036                            91  CHECK_MISSION:
+00003036  1239 00003D31             92      MOVE.B LEVEL, D1
+0000303C  B27C 0001                 93      CMP #MAX_LEVEL_MISSIONS, D1
+00003040  6E00 0CBE                 94      BGT GAME_COMPLETE
+00003044  6000 0002                 95      BRA MISSION
+00003048                            96      
+00003048                            97  MISSION:
+00003048  6100 0B92                 98      BSR DRAW_NEWLINE    
+0000304C  43F9 00003D98             99      LEA MISSION_MODE_MSG, A1
+00003052  6100 0B78                100      BSR DRAW_STRING
+00003056  6100 0B84                101      BSR DRAW_NEWLINE
+0000305A                           102      
+0000305A                           103      ;RNG MISSION EXIT OR BOSS
+0000305A  6100 088A                104      BSR RNG_0_1
+0000305E  B27C 0001                105      CMP #BOAT, D1 
+00003062  6700 00F4                106      BEQ LOAD_BOSS_MAP
+00003066  6600 012C                107      BNE LOAD_BOAT_MAP
+0000306A                           108      
+0000306A                           109  MISSION_INTRO: 
+0000306A  43F9 00003DC4            110      LEA WELCOME_MSG, A1
+00003070  6100 0B5A                111      BSR DRAW_STRING
+00003074  6100 0B66                112      BSR DRAW_NEWLINE
+00003078  43F9 00003DE0            113      LEA EQUIP_MSG, A1
+0000307E  6100 0B4C                114      BSR DRAW_STRING
+00003082  6100 0B58                115      BSR DRAW_NEWLINE
+00003086  43F9 00003DFA            116      LEA LEARN_HEAL_MSG, A1
+0000308C  6100 0B3E                117      BSR DRAW_STRING
+00003090  6100 0B4A                118      BSR DRAW_NEWLINE
+00003094  43F9 00003E2A            119      LEA MOVE_COST_MSG, A1
+0000309A  6100 0B30                120      BSR DRAW_STRING
+0000309E  6100 0B3C                121      BSR DRAW_NEWLINE
+000030A2  43F9 00003E4E            122      LEA WASD_MSG, A1
+000030A8  6100 0B22                123      BSR DRAW_STRING
+000030AC  6100 0B2E                124      BSR DRAW_NEWLINE
+000030B0  43F9 00003E8B            125      LEA START_COORD_MSG, A1
+000030B6  6100 0B14                126      BSR DRAW_STRING
+000030BA  6100 0B20                127      BSR DRAW_NEWLINE
+000030BE                           128      
+000030BE  6100 0274                129      BSR MISSION_PLAYER
+000030C2  6000 02F4                130      BRA MAP_LOOP
+000030C6                           131      
+000030C6                           132  
+000030C6                           133  *-------------------------------------------------------
+000030C6                           134  *------------------- ENDLESS MODE LOOP
+000030C6                           135  *-------------------------------------------------------    
+000030C6                           136  ENDLESS:
+000030C6  43F9 00003EDA            137      LEA SURVIVE_MSG, A1
+000030CC  6100 0AFE                138      BSR DRAW_STRING
+000030D0  6100 0B0A                139      BSR DRAW_NEWLINE
+000030D4  43F9 00003F17            140      LEA GAME_OVER_MSG, A1
+000030DA  6100 0AF0                141      BSR DRAW_STRING
+000030DE  6100 0AFC                142      BSR DRAW_NEWLINE
+000030E2                           143      
+000030E2  6100 0292                144      BSR ENDLESS_PLAYER
+000030E6  6000 0002                145      BRA ENDLESS_LOOP
+000030EA                           146  
+000030EA                           147  ENDLESS_LOOP:
+000030EA  1239 00003D28            148      MOVE.B MODE_TEST, D1
+000030F0  5201                     149      ADD.B #1, D1
+000030F2  13C1 00003D28            150      MOVE.B D1, MODE_TEST
+000030F8                           151    
+000030F8  6100 07EC                152      BSR RNG_0_1
+000030FC  B27C 0000                153      CMP #BOSS, D1 
+00003100  6700 002A                154      BEQ LOAD_BOSS_ENDLESS_MAP
+00003104  6600 00CE                155      BNE LOAD_PORTAL_MAP
+00003108                           156      
+00003108                           157  ENDLESS_INTRO:
+00003108  43F9 00003D29            158      LEA CURRENT_LEVEL_MSG, A1
+0000310E  6100 0ABC                159      BSR DRAW_STRING
+00003112  1239 00003D31            160      MOVE.B LEVEL, D1
+00003118  6100 0ABA                161      BSR DRAW_NUMBER
+0000311C  6100 0ABE                162      BSR DRAW_NEWLINE
+00003120  6100 0ABA                163      BSR DRAW_NEWLINE
+00003124                           164      
+00003124  6100 0AC4                165      BSR DRAW_HUD
+00003128                           166      
+00003128  6000 028E                167      BRA MAP_LOOP
+0000312C                           168      
+0000312C                           169      
+0000312C                           170  *-------------------------------------------------------
+0000312C                           171  *------------------- LOAD VALUES INTO MAP 
+0000312C                           172  *-------------------------------------------------------
+0000312C                           173  LOAD_BOSS_ENDLESS_MAP:
+0000312C  6100 00C8                174      BSR UPDATE_MAP
+00003130                           175      
+00003130  1A3C 0004                176      MOVE.B #4, D5 ;COUNTER
+00003134  4242                     177      CLR D2
+00003136  45F9 00004104            178      LEA MAP_ROW4, A2 ;RELOAD MAP START IN MEMORY
+0000313C  6100 010E                179      BSR ADD_BOSS
+00003140                           180      
+00003140  6100 0156                181      BSR ADD_CAMP
+00003144  6100 0172                182      BSR ADD_TOWN
+00003148                           183      
+00003148                           184      ;PLAY BOSS MSG
+00003148  43F9 00003EF7            185      LEA DEFEAT_BOSS_MSG, A1
+0000314E  6100 0A7C                186      BSR DRAW_STRING
+00003152  6100 0A88                187      BSR DRAW_NEWLINE
+00003156                           188      
+00003156                           189      ;ENDLESS MODE GO TO ENDLESS INMT
+00003156  60B0                     190      BRA ENDLESS_INTRO   
+00003158                           191      
+00003158                           192  LOAD_BOSS_MAP:
+00003158  6100 009C                193      BSR UPDATE_MAP
+0000315C                           194      
+0000315C  1A3C 0004                195      MOVE.B #4, D5 ;COUNTER
+00003160  4242                     196      CLR D2
+00003162  45F9 00004104            197      LEA MAP_ROW4, A2 ;RELOAD MAP START IN MEMORY
+00003168  6100 00E2                198      BSR ADD_BOSS
+0000316C                           199      
+0000316C  6100 012A                200      BSR ADD_CAMP
+00003170  6100 0146                201      BSR ADD_TOWN
+00003174                           202      
+00003174                           203      ;PLAY BOSS MSG
+00003174  43F9 00003EF7            204      LEA DEFEAT_BOSS_MSG, A1
+0000317A  6100 0A50                205      BSR DRAW_STRING
+0000317E  6100 0A5C                206      BSR DRAW_NEWLINE
+00003182  43F9 00003F17            207      LEA GAME_OVER_MSG, A1
+00003188  6100 0A42                208      BSR DRAW_STRING
+0000318C  6100 0A4E                209      BSR DRAW_NEWLINE
+00003190                           210      
+00003190                           211      ;ENDLESS MODE GO TO ENDLESS INMT
+00003190  6000 FED8                212      BRA MISSION_INTRO    
+00003194                           213  LOAD_BOAT_MAP:
+00003194  6100 0060                214      BSR UPDATE_MAP
+00003198  6100 00C4                215      BSR ADD_EXIT
+0000319C                           216      
+0000319C  1A3C 0004                217      MOVE.B #4, D5 ;COUNTER
+000031A0  4242                     218      CLR D2
+000031A2  45F9 00004104            219      LEA MAP_ROW4, A2 ;RELOAD MAP START IN MEMORY
+000031A8  6100 00B4                220      BSR ADD_EXIT
+000031AC                           221      
+000031AC  6100 00EA                222      BSR ADD_CAMP
+000031B0  6100 0106                223      BSR ADD_TOWN
+000031B4                           224      
+000031B4                           225      ;PLAY BOAT MSG    
+000031B4  43F9 00003F08            226      LEA FIND_EXIT_MSG, A1
+000031BA  6100 0A10                227      BSR DRAW_STRING
+000031BE  6100 0A1C                228      BSR DRAW_NEWLINE
+000031C2  43F9 00003F17            229      LEA GAME_OVER_MSG, A1
+000031C8  6100 0A02                230      BSR DRAW_STRING
+000031CC  6100 0A0E                231      BSR DRAW_NEWLINE
+000031D0  6000 FE98                232      BRA MISSION_INTRO
+000031D4                           233      
+000031D4                           234  LOAD_PORTAL_MAP:
+000031D4  6100 0020                235      BSR UPDATE_MAP
+000031D8  6100 00BE                236      BSR ADD_CAMP
+000031DC  6100 00DA                237      BSR ADD_TOWN
+000031E0  6100 008E                238      BSR ADD_PORTAL
+000031E4                           239      
+000031E4  43F9 00003F08            240      LEA FIND_EXIT_MSG, A1
+000031EA  6100 09E0                241      BSR DRAW_STRING
+000031EE  6100 09EC                242      BSR DRAW_NEWLINE
+000031F2                           243      
+000031F2  6000 FF14                244      BRA ENDLESS_INTRO
+000031F6                           245  
+000031F6                           246  UPDATE_MAP:
+000031F6                           247      ;ADD TILES TO MAP
+000031F6  4242                     248      CLR D2
+000031F8  1A3C 0004                249      MOVE.B #4, D5 ;COUNTER
+000031FC  45F9 000040F8            250      LEA MAP_ROW1, A2 ;RELOAD MAP START IN MEMORY
+00003202  6100 0034                251      BSR UPDATE_ROW
+00003206                           252      
+00003206  4242                     253      CLR D2
+00003208  1A3C 0004                254      MOVE.B #4, D5 ;COUNTER
+0000320C  45F9 000040FC            255      LEA MAP_ROW2, A2 ;RELOAD MAP START IN MEMORY
+00003212  6100 0024                256      BSR UPDATE_ROW
+00003216                           257      
+00003216  4242                     258      CLR D2
+00003218  1A3C 0004                259      MOVE.B #4, D5 ;COUNTER
+0000321C  45F9 00004100            260      LEA MAP_ROW3, A2 ;RELOAD MAP START IN MEMORY
+00003222  6100 0014                261      BSR UPDATE_ROW
+00003226                           262      
+00003226  4242                     263      CLR D2
+00003228  1A3C 0004                264      MOVE.B #4, D5 ;COUNTER
+0000322C  45F9 00004104            265      LEA MAP_ROW4, A2 ;RELOAD MAP START IN MEMORY    
+00003232  6100 0004                266      BSR UPDATE_ROW
+00003236                           267      
+00003236  4E75                     268      RTS
+00003238                           269      
+00003238                           270  UPDATE_ROW:
+00003238  1412                     271      MOVE.B (A2), D2 ;GET VALUE
+0000323A                           272      
+0000323A  6100 06C6                273      BSR RNG_1_4 ;GET RNG VALUE
+0000323E                           274      ;NOT CHECKING VALUE
+0000323E  1401                     275      MOVE.B D1, D2 ;UPDATE VALUE
+00003240  14C2                     276      MOVE.B D2, (A2)+ ;RE ENTER VALUE
+00003242  5305                     277      SUB.B #1, D5 ;COUNTER--
+00003244  BA3C 0000                278      CMP.B #0, D5 
+00003248  66EE                     279      BNE UPDATE_ROW ;EXIT LOOP AFTER  
+0000324A  4E75                     280      RTS
+0000324C                           281  
+0000324C                           282  *-------------------------------------------------------
+0000324C                           283  *------------------- CLEAN MAP 
+0000324C                           284  *-------------------------------------------------------
+0000324C                           285  ADD_BOSS:
+0000324C                           286      ;PUT BOSS TILE AT ROW4[3]    
+0000324C  141A                     287      MOVE.B (A2)+, D2 ;GET VALUE
+0000324E                           288      
+0000324E  5305                     289      SUB.B #1, D5 ;COUNTER--
+00003250  BA3C 0002                290      CMP.B #2, D5 
+00003254  66F6                     291      BNE ADD_BOSS ;EXIT LOOP AFTER 
+00003256                           292  
+00003256  143C 0008                293      MOVE.B #BOSS_TILE, D2 ;UPDATE VALUE
+0000325A  1482                     294      MOVE.B D2, (A2) ;RE ENTER VALUE 
+0000325C                           295      
+0000325C  4E75                     296      RTS
+0000325E                           297      
+0000325E                           298  ADD_EXIT:
+0000325E                           299      ;PUT BOAT TILE AT ROW4[3]    
+0000325E  141A                     300      MOVE.B (A2)+, D2 ;GET VALUE
+00003260                           301      
+00003260  5305                     302      SUB.B #1, D5 ;COUNTER--
+00003262  BA3C 0002                303      CMP.B #2, D5 
+00003266  66F6                     304      BNE ADD_EXIT ;EXIT LOOP AFTER 
+00003268                           305  
+00003268  143C 0007                306      MOVE.B #EXIT_TILE, D2 ;UPDATE VALUE
+0000326C  1482                     307      MOVE.B D2, (A2) ;RE ENTER VALUE 
+0000326E                           308      
+0000326E  4E75                     309      RTS
+00003270                           310      
+00003270                           311  ADD_PORTAL:
+00003270  1C3C 0009                312      MOVE.B #PORTAL_TILE, D6
+00003274                           313      ;PUT PORTAL AT RNG TILE ?,?
+00003274  6100 068C                314      BSR RNG_1_4
+00003278                           315      ;CHOOSE ROW
+00003278  B23C 0001                316      CMP.B #1, D1
+0000327C  6700 005A                317      BEQ LOAD_ROW_1
+00003280                           318      
+00003280  B23C 0002                319      CMP.B #2, D1
+00003284  6700 0064                320      BEQ LOAD_ROW_2
+00003288                           321  
+00003288  B23C 0003                322      CMP.B #3, D1
+0000328C  6700 006E                323      BEQ LOAD_ROW_3
+00003290                           324  
+00003290  B23C 0004                325      CMP.B #4, D1  
+00003294  6700 0078                326      BEQ LOAD_ROW_4
+00003298                           327      
+00003298                           328  ADD_CAMP:
+00003298  1C3C 0006                329      MOVE.B #FIELD, D6
+0000329C                           330      ;PUT PORTAL AT RNG TILE ?,?
+0000329C  6100 0680                331      BSR RNG_1_3
+000032A0                           332      ;CHOOSE ROW
+000032A0  B23C 0001                333      CMP.B #1, D1
+000032A4  6700 0032                334      BEQ LOAD_ROW_1
+000032A8                           335      
+000032A8  B23C 0002                336      CMP.B #2, D1
+000032AC  6700 003C                337      BEQ LOAD_ROW_2
+000032B0                           338  
+000032B0  B23C 0003                339      CMP.B #3, D1
+000032B4  6700 0046                340      BEQ LOAD_ROW_3
+000032B8                           341  ADD_TOWN:
+000032B8  1C3C 0005                342      MOVE.B #TOWN, D6
+000032BC                           343      ;PUT PORTAL AT RNG TILE ?,?
+000032BC  6100 0660                344      BSR RNG_1_3
+000032C0                           345      ;CHOOSE ROW
+000032C0  B23C 0001                346      CMP.B #1, D1
+000032C4  6700 0012                347      BEQ LOAD_ROW_1
+000032C8                           348      
+000032C8  B23C 0002                349      CMP.B #2, D1
+000032CC  6700 001C                350      BEQ LOAD_ROW_2
+000032D0                           351  
+000032D0  B23C 0003                352      CMP.B #3, D1
+000032D4  6700 0026                353      BEQ LOAD_ROW_3
+000032D8                           354      
+000032D8                           355  LOAD_ROW_1:
+000032D8  45F9 000040F8            356      LEA MAP_ROW1, A2 ;RELOAD MAP START IN MEMORY
+000032DE  6100 063E                357      BSR RNG_1_3
+000032E2  1A01                     358      MOVE.B D1, D5
+000032E4  6100 003A                359      BSR LOAD_VALUE
+000032E8  4E75                     360      RTS
+000032EA                           361      
+000032EA                           362  LOAD_ROW_2:    
+000032EA  45F9 000040FC            363      LEA MAP_ROW2, A2 ;RELOAD MAP START IN MEMORY
+000032F0  6100 062C                364      BSR RNG_1_3
+000032F4  1A01                     365      MOVE.B D1, D5
+000032F6  6100 0028                366      BSR LOAD_VALUE
+000032FA  4E75                     367      RTS
+000032FC                           368      
+000032FC                           369  LOAD_ROW_3:
+000032FC  45F9 00004100            370      LEA MAP_ROW3, A2 ;RELOAD MAP START IN MEMORY
+00003302  6100 061A                371      BSR RNG_1_3
+00003306  1A01                     372      MOVE.B D1, D5
+00003308  6100 0016                373      BSR LOAD_VALUE
+0000330C  4E75                     374      RTS
+0000330E                           375      
+0000330E                           376  LOAD_ROW_4:
+0000330E  45F9 00004104            377      LEA MAP_ROW4, A2 ;RELOAD MAP START IN MEMORY    
+00003314  6100 0608                378      BSR RNG_1_3
+00003318  1A01                     379      MOVE.B D1, D5
+0000331A  6100 0004                380      BSR LOAD_VALUE
+0000331E  4E75                     381      RTS
+00003320                           382  
+00003320                           383  LOAD_VALUE:
+00003320                           384      ;CHOOSE ROW INDEX  
+00003320  141A                     385      MOVE.B (A2)+, D2 ;GET VALUE
+00003322                           386      
+00003322  5305                     387      SUB.B #1, D5 ;COUNTER--
+00003324  BA3C 0000                388      CMP.B #0, D5 
+00003328  66F6                     389      BNE LOAD_VALUE ;EXIT LOOP AFTER 
+0000332A                           390      
+0000332A                           391      ;ADD VALUE
+0000332A  1406                     392      MOVE.B D6, D2 ;UPDATE VALUE
+0000332C  1482                     393      MOVE.B D2, (A2) ;RE ENTER VALUE 
+0000332E                           394      
+0000332E                           395      ;CLEAR D5,D6
+0000332E  4245                     396      CLR D5
+00003330  4246                     397      CLR D6
+00003332  4E75                     398      RTS
+00003334                           399  *-------------------------------------------------------
+00003334                           400  *------------------- LOAD PLAYER AND ITEMS 
+00003334                           401  *-------------------------------------------------------
+00003334                           402  MISSION_PLAYER:
+00003334  13FC 0064 00004065       403      MOVE.B #$64, HEALTH 
+0000333C  13FC 0064 0000406F       404      MOVE.B #$64, STAMINA
+00003344  13FC 0001 0000407A       405      MOVE.B #$1, STAMINA_POTIONS
+0000334C  13FC 0000 0000409C       406      MOVE.B #$0, CAMPS
+00003354  13FC 0000 000040B1       407      MOVE.B #$0, GOLD
+0000335C  13FC 0001 0000408D       408      MOVE.B #$1, SPELL_SLOTS
+00003364  13FC 0000 000040B9       409      MOVE.B #0, PLAYER_X
+0000336C  13FC 0000 000040C7       410      MOVE.B #0, PLAYER_Y
+00003374  4E75                     411      RTS
+00003376                           412      
+00003376                           413  ENDLESS_PLAYER:
+00003376  13FC 0064 00004065       414      MOVE.B #$64, HEALTH
+0000337E  13FC 0064 0000406F       415      MOVE.B #$64, STAMINA
+00003386  13FC 0005 0000407A       416      MOVE.B #$5, STAMINA_POTIONS
+0000338E  13FC 0002 0000409C       417      MOVE.B #$2, CAMPS
+00003396  13FC 0064 000040B1       418      MOVE.B #$64, GOLD
+0000339E  13FC 0003 0000408D       419      MOVE.B #$3, SPELL_SLOTS
+000033A6  13FC 0000 000040B9       420      MOVE.B #0, PLAYER_X
+000033AE  13FC 0000 000040C7       421      MOVE.B #0, PLAYER_Y
+000033B6  4E75                     422      RTS
+000033B8                           423  
+000033B8                           424  *-------------------------------------------------------
+000033B8                           425  *------------------- MAP GAMELOOP
+000033B8                           426  *-------------------------------------------------------
+000033B8                           427  MAP_LOOP:
+000033B8                           428      ;CHECK STAMINA
+000033B8                           429      ;NOT WORKING NEEDS FIXING
+000033B8  1239 0000406F            430      MOVE.B STAMINA, D1
+000033BE  B27C 0000                431      CMP #MIN_ALL, D1    ;EXIT IF 0
+000033C2  6700 0336                432      BEQ USE_STAMINA_POTION
+000033C6                           433      
+000033C6                           434      ;CHECK COLS
+000033C6  6000 0002                435      BRA CHECK_Y_POS
+000033CA                           436      
+000033CA                           437  *-------------------------------------------------------
+000033CA                           438  *------------------- CHECK POSITION IN MAP
+000033CA                           439  *-------------------------------------------------------
+000033CA                           440  CHECK_Y_POS:
+000033CA  1A39 000040C7            441      MOVE.B PLAYER_Y, D5
+000033D0                           442      
+000033D0  BA7C 0000                443      CMP #0, D5
+000033D4  6700 001A                444      BEQ CHECK_X_POS_ROW1
+000033D8  BA7C 0001                445      CMP #1, D5
+000033DC  6700 0026                446      BEQ CHECK_X_POS_ROW2 
+000033E0  BA7C 0002                447      CMP #2, D5
+000033E4  6700 0032                448      BEQ CHECK_X_POS_ROW3 
+000033E8  BA7C 0003                449      CMP #3, D5
+000033EC  6700 003E                450      BEQ CHECK_X_POS_ROW4 
+000033F0                           451      
+000033F0                           452  CHECK_X_POS_ROW1:
+000033F0  1A39 000040B9            453      MOVE.B PLAYER_X, D5 ;PX IS COUNTER AFTER PICKING ROW
+000033F6                           454      
+000033F6                           455      ;LOAD MAP ROW
+000033F6  45F9 000040F8            456      LEA MAP_ROW1, A2 ;RELOAD MAP START IN MEMORY
+000033FC                           457      ;LOOP UNTIL COUNT
+000033FC  6100 0042                458      BSR LOOP_MAP_ROW
+00003400                           459      ;MOVE VALUE TO D1
+00003400                           460      ;ENTER TILE
+00003400  6000 004A                461      BRA ENTER_TILE
+00003404                           462      
+00003404                           463  CHECK_X_POS_ROW2:
+00003404  1A39 000040B9            464      MOVE.B PLAYER_X, D5 ;PX IS COUNTER AFTER PICKING ROW
+0000340A                           465      
+0000340A                           466      ;LOAD MAP ROW
+0000340A  45F9 000040FC            467      LEA MAP_ROW2, A2 ;RELOAD MAP START IN MEMORY
+00003410                           468      ;LOOP UNTIL COUNT
+00003410  6100 002E                469      BSR LOOP_MAP_ROW
+00003414                           470      ;MOVE VALUE TO D1
+00003414                           471      ;ENTER TILE
+00003414  6000 0036                472      BRA ENTER_TILE
+00003418                           473  
+00003418                           474  CHECK_X_POS_ROW3:
+00003418  1A39 000040B9            475      MOVE.B PLAYER_X, D5 ;PX IS COUNTER AFTER PICKING ROW
+0000341E                           476      
+0000341E                           477      ;LOAD MAP ROW
+0000341E  45F9 00004100            478      LEA MAP_ROW3, A2 ;RELOAD MAP START IN MEMORY
+00003424                           479      ;LOOP UNTIL COUNT
+00003424  6100 001A                480      BSR LOOP_MAP_ROW
+00003428                           481      ;MOVE VALUE TO D1
+00003428                           482      ;ENTER TILE
+00003428  6000 0022                483      BRA ENTER_TILE
+0000342C                           484  
+0000342C                           485  CHECK_X_POS_ROW4:
+0000342C  1A39 000040B9            486      MOVE.B PLAYER_X, D5 ;PX IS COUNTER AFTER PICKING ROW
+00003432                           487      
+00003432                           488      ;LOAD MAP ROW
+00003432  45F9 00004104            489      LEA MAP_ROW4, A2 ;RELOAD MAP START IN MEMORY
+00003438                           490      ;LOOP UNTIL COUNT
+00003438  6100 0006                491      BSR LOOP_MAP_ROW
+0000343C                           492      ;MOVE VALUE TO D1
+0000343C                           493      ;ENTER TILE
+0000343C  6000 000E                494      BRA ENTER_TILE    
+00003440                           495      
+00003440                           496  LOOP_MAP_ROW:        
+00003440  141A                     497      MOVE.B (A2)+, D2 ;GET VALUE     
+00003442  5305                     498      SUB.B #1, D5 ;COUNTER--
+00003444  BA3C 0000                499      CMP.B #0, D5 ;CHECK  HERE
+00003448  6EF6                     500      BGT LOOP_MAP_ROW ;EXIT LOOP AFTER     
+0000344A  4E75                     501      RTS
+0000344C                           502  
+0000344C                           503  
+0000344C                           504  *-------------------------------------------------------
+0000344C                           505  *------------------- ENTER TILE  
+0000344C                           506  *-------------------------------------------------------
+0000344C                           507  ENTER_TILE:
+0000344C  B47C 0001                508      CMP #ENEMY_TILE,D2
+00003450  6700 0042                509      BEQ ENTER_ENEMY
+00003454                           510      
+00003454  B47C 0002                511      CMP #MOUNTAIN,D2
+00003458  6700 007C                512      BEQ ENTER_MOUNTAIN
+0000345C                           513      
+0000345C  B47C 0003                514      CMP #FOREST,D2
+00003460  6700 0086                515      BEQ ENTER_FOREST
+00003464                           516      
+00003464  B47C 0004                517      CMP #BEACH,D2
+00003468  6700 0128                518      BEQ ENTER_BEACH
+0000346C                           519      
+0000346C  B47C 0005                520      CMP #TOWN,D2
+00003470  6700 0132                521      BEQ ENTER_TOWN
+00003474                           522      
+00003474  B47C 0006                523      CMP #FIELD,D2
+00003478  6700 01F6                524      BEQ ENTER_FIELD
+0000347C                           525      
+0000347C  B47C 0007                526      CMP #EXIT_TILE,D2
+00003480  6700 0242                527      BEQ ENTER_BOAT
+00003484                           528      
+00003484  B47C 0008                529      CMP #BOSS_TILE,D2
+00003488  6700 024C                530      BEQ ENTER_BOSS
+0000348C                           531  
+0000348C  B47C 0009                532      CMP #PORTAL_TILE,D2
+00003490  6700 0256                533      BEQ ENTER_PORTAL
+00003494                           534      
+00003494                           535  *-------------------------------------------------------
+00003494                           536  *------------------- ENEMY
+00003494                           537  *-------------------------------------------------------
+00003494                           538  ENTER_ENEMY:
+00003494  43F9 00004108            539      LEA ENEMY_MSG,A1
+0000349A  6100 0730                540      BSR DRAW_STRING
+0000349E  6100 073C                541      BSR DRAW_NEWLINE
+000034A2                           542      
+000034A2  43F9 00004119            543      LEA FIGHT_MSG,A1
+000034A8  6100 0722                544      BSR DRAW_STRING
+000034AC  6100 072E                545      BSR DRAW_NEWLINE
+000034B0                           546      
+000034B0  6100 0702                547      BSR GET_INPUT
+000034B4  6100 0726                548      BSR DRAW_NEWLINE
+000034B8                           549      
+000034B8  B27C 0031                550      CMP #ONE, D1
+000034BC  6700 0496                551      BEQ MOVE_PLAYER
+000034C0                           552      
+000034C0  B27C 0032                553      CMP #TWO, D1
+000034C4  6700 02EA                554      BEQ FIGHT_ENEMY
+000034C8                           555      
+000034C8  6100 0712                556      BSR DRAW_NEWLINE
+000034CC  6100 06EE                557      BSR INVALID_INPUTS
+000034D0  6100 070A                558      BSR DRAW_NEWLINE
+000034D4  60BE                     559      BRA ENTER_ENEMY
+000034D6                           560  *-------------------------------------------------------
+000034D6                           561  *------------------- MOUNTAIN 
+000034D6                           562  *-------------------------------------------------------
+000034D6                           563  ENTER_MOUNTAIN:
+000034D6  43F9 00004185            564      LEA MOUNTAIN_MSG,A1
+000034DC  6100 06EE                565      BSR DRAW_STRING
+000034E0  6100 06FA                566      BSR DRAW_NEWLINE
+000034E4  6000 046E                567      BRA MOVE_PLAYER
+000034E8                           568  *-------------------------------------------------------
+000034E8                           569  *------------------- FOREST
+000034E8                           570  *------------------------------------------------------- 
+000034E8                           571  ENTER_FOREST:
+000034E8  43F9 0000413A            572      LEA FOREST_MSG,A1
+000034EE  6100 06DC                573      BSR DRAW_STRING
+000034F2  6100 06E8                574      BSR DRAW_NEWLINE
+000034F6                           575      
+000034F6  43F9 0000414E            576      LEA SEARCH_MSG,A1
+000034FC  6100 06CE                577      BSR DRAW_STRING
+00003500  6100 06DA                578      BSR DRAW_NEWLINE
+00003504                           579  
+00003504                           580      ;RNG  1 POTION 2 STR++ 3 CAMP 4 NO ITEM
+00003504  6100 03FC                581      BSR RNG_1_4
+00003508  B27C 0001                582      CMP #1, D1
+0000350C  6700 0024                583      BEQ GET_POTION
+00003510  B27C 0002                584      CMP #2, D1
+00003514  6700 003C                585      BEQ GET_WEAPON
+00003518  B27C 0003                586      CMP #3, D1
+0000351C  6700 0054                587      BEQ GET_CAMP
+00003520                           588      
+00003520  43F9 00004163            589      LEA NO_ITEM_MSG,A1
+00003526  6100 06A4                590      BSR DRAW_STRING
+0000352A  6100 06B0                591      BSR DRAW_NEWLINE
+0000352E                           592      
+0000352E  6000 0424                593      BRA MOVE_PLAYER
+00003532                           594  *-------------------------------------------------------
+00003532                           595  *------------------- FOREST PICKUPS 
+00003532                           596  *-------------------------------------------------------
+00003532                           597  GET_POTION:
+00003532  1239 0000407A            598      MOVE.B STAMINA_POTIONS ,D1
+00003538  5201                     599      ADD.B #1, D1
+0000353A  13C1 0000407A            600      MOVE.B D1, STAMINA_POTIONS
+00003540                           601      
+00003540  43F9 00004173            602      LEA FOUND_MSG, A1
+00003546  6100 0684                603      BSR DRAW_STRING
+0000354A  6100 0690                604      BSR DRAW_NEWLINE
+0000354E  6000 0404                605      BRA MOVE_PLAYER
+00003552                           606      
+00003552                           607  GET_WEAPON:
+00003552  1239 000040A5            608      MOVE.B STRENGTH ,D1
+00003558  5601                     609      ADD.B #3, D1
+0000355A  13C1 000040A5            610      MOVE.B D1, STRENGTH
+00003560                           611      
+00003560  43F9 00004173            612      LEA FOUND_MSG, A1
+00003566  6100 0664                613      BSR DRAW_STRING
+0000356A  6100 0670                614      BSR DRAW_NEWLINE
+0000356E  6000 03E4                615      BRA MOVE_PLAYER
+00003572                           616  
+00003572                           617  GET_CAMP:
+00003572  1239 0000409C            618      MOVE.B CAMPS ,D1
+00003578  5201                     619      ADD.B #1, D1
+0000357A  13C1 0000409C            620      MOVE.B D1, CAMPS
+00003580                           621      
+00003580  43F9 00004173            622      LEA FOUND_MSG, A1
+00003586  6100 0644                623      BSR DRAW_STRING
+0000358A  6100 0650                624      BSR DRAW_NEWLINE
+0000358E  6000 03C4                625      BRA MOVE_PLAYER
+00003592                           626  *-------------------------------------------------------
+00003592                           627  *------------------- BEACH 
+00003592                           628  *-------------------------------------------------------
+00003592                           629  ENTER_BEACH:
+00003592  43F9 000041A7            630      LEA BEACH_MSG,A1
+00003598  6100 0632                631      BSR DRAW_STRING
+0000359C  6100 063E                632      BSR DRAW_NEWLINE
+000035A0  6000 03B2                633      BRA MOVE_PLAYER
+000035A4                           634  *-------------------------------------------------------
+000035A4                           635  *------------------- TOWN
+000035A4                           636  *-------------------------------------------------------
+000035A4                           637  ENTER_TOWN:
+000035A4  43F9 000041C6            638      LEA TOWN_MSG,A1
+000035AA  6100 0620                639      BSR DRAW_STRING
+000035AE  6100 062C                640      BSR DRAW_NEWLINE
+000035B2                           641      
+000035B2  43F9 000041F4            642      LEA SHOP_MSG,A1
+000035B8  6100 0612                643      BSR DRAW_STRING
+000035BC  6100 061E                644      BSR DRAW_NEWLINE
+000035C0                           645      
+000035C0  6100 05F2                646      BSR GET_INPUT
+000035C4  6100 0616                647      BSR DRAW_NEWLINE
+000035C8                           648      
+000035C8  B27C 0031                649      CMP #ONE, D1
+000035CC  6700 0032                650      BEQ SHOP_1
+000035D0                           651          
+000035D0  B27C 0032                652      CMP #TWO, D1
+000035D4  6700 005E                653      BEQ SHOP_2
+000035D8                           654      
+000035D8  B27C 0033                655      CMP #THREE, D1
+000035DC  6700 0010                656      BEQ EXIT_SHOP
+000035E0                           657      
+000035E0  6100 05FA                658      BSR DRAW_NEWLINE
+000035E4  6100 05D6                659      BSR INVALID_INPUTS
+000035E8  6100 05F2                660      BSR DRAW_NEWLINE
+000035EC  60B6                     661      BRA ENTER_TOWN
+000035EE                           662  EXIT_SHOP:
+000035EE  43F9 000042D5            663      LEA EXIT_SHOP_MSG,A1
+000035F4  6100 05D6                664      BSR DRAW_STRING
+000035F8  6100 05E2                665      BSR DRAW_NEWLINE
+000035FC                           666      
+000035FC  6000 0356                667      BRA MOVE_PLAYER
+00003600                           668      
+00003600                           669  *-------------------------------------------------------
+00003600                           670  *------------------- SHOP
+00003600                           671  *-------------------------------------------------------
+00003600                           672  SHOP_1:
+00003600  1239 000040B1            673      MOVE.B GOLD, D1
+00003606  B27C 000A                674      CMP #10, D1
+0000360A  6D00 005C                675      BLT NO_GOLD
+0000360E                           676      
+0000360E  0401 000A                677      SUB.B #10, D1
+00003612  13C1 000040B1            678      MOVE.B D1, GOLD
+00003618                           679      
+00003618  123C 0001                680      MOVE.B #1, D1
+0000361C  D339 0000407A            681      ADD.B D1, STAMINA_POTIONS
+00003622                           682      
+00003622  43F9 00004244            683      LEA BOUGHT_STAMINA_MSG, A1
+00003628  6100 05A2                684      BSR DRAW_STRING
+0000362C  6100 05AE                685      BSR DRAW_NEWLINE
+00003630  6000 0322                686      BRA MOVE_PLAYER
+00003634                           687  
+00003634                           688  SHOP_2:
+00003634  1239 000040B1            689      MOVE.B GOLD, D1
+0000363A  B27C 0014                690      CMP #20, D1
+0000363E  6D00 0028                691      BLT NO_GOLD
+00003642                           692      
+00003642  0401 0014                693      SUB.B #20, D1
+00003646  13C1 000040B1            694      MOVE.B D1, GOLD
+0000364C                           695      
+0000364C  123C 0003                696      MOVE.B #3, D1
+00003650  D339 000040A5            697      ADD.B D1, STRENGTH
+00003656                           698      
+00003656  43F9 00004277            699      LEA BOUGHT_WEAPON_MSG, A1
+0000365C  6100 056E                700      BSR DRAW_STRING
+00003660  6100 057A                701      BSR DRAW_NEWLINE
+00003664  6000 02EE                702      BRA MOVE_PLAYER
+00003668                           703  
+00003668                           704  NO_GOLD:
+00003668  6100 0136                705      BSR INSUFFICIENT_RESOURCES
+0000366C  6000 FD4A                706      BRA MAP_LOOP 
+00003670                           707  *-------------------------------------------------------
+00003670                           708  *------------------- FIELD  
+00003670                           709  *-------------------------------------------------------
+00003670                           710  ENTER_FIELD:
+00003670  43F9 000042ED            711      LEA FIELD_MSG,A1
+00003676  6100 0554                712      BSR DRAW_STRING
+0000367A  6100 0560                713      BSR DRAW_NEWLINE
+0000367E                           714      
+0000367E  43F9 00004300            715      LEA CAMP_MSG,A1
+00003684  6100 0546                716      BSR DRAW_STRING
+00003688  6100 0552                717      BSR DRAW_NEWLINE
+0000368C                           718      
+0000368C  6100 0526                719      BSR GET_INPUT
+00003690  6100 054A                720      BSR DRAW_NEWLINE
+00003694                           721      
+00003694  B27C 0031                722      CMP #ONE, D1
+00003698  6700 0018                723      BEQ NOT_CAMP
+0000369C                           724      
+0000369C  B27C 0032                725      CMP #TWO, D1
+000036A0  6700 0084                726      BEQ USE_CAMP
+000036A4                           727      
+000036A4  6100 0536                728      BSR DRAW_NEWLINE
+000036A8  6100 0512                729      BSR INVALID_INPUTS
+000036AC  6100 052E                730      BSR DRAW_NEWLINE
+000036B0                           731      
+000036B0  60BE                     732      BRA ENTER_FIELD
+000036B2                           733      
+000036B2                           734  NOT_CAMP:
+000036B2  43F9 00004347            735      LEA NO_CAMP_MSG, A1
+000036B8  6100 0512                736      BSR DRAW_STRING
+000036BC  6100 051E                737      BSR DRAW_NEWLINE
+000036C0                           738      
+000036C0  6000 0292                739      BRA MOVE_PLAYER
+000036C4                           740  
+000036C4                           741  *-------------------------------------------------------
+000036C4                           742  *------------------- BOAT
+000036C4                           743  *-------------------------------------------------------
+000036C4                           744  ENTER_BOAT:
+000036C4  43F9 0000435F            745      LEA BOAT_MSG,A1
+000036CA  6100 0500                746      BSR DRAW_STRING
+000036CE  6100 050C                747      BSR DRAW_NEWLINE
+000036D2  6000 062C                748      BRA GAME_COMPLETE
+000036D6                           749      
+000036D6                           750  *-------------------------------------------------------
+000036D6                           751  *------------------- BOSS
+000036D6                           752  *-------------------------------------------------------
+000036D6                           753  ENTER_BOSS:
+000036D6  43F9 00004386            754      LEA BOSS_MSG,A1 
+000036DC  6100 04EE                755      BSR DRAW_STRING
+000036E0  6100 04FA                756      BSR DRAW_NEWLINE
+000036E4                           757      
+000036E4  6000 00E2                758      BRA FIGHT_BOSS
+000036E8                           759      
+000036E8                           760  *-------------------------------------------------------
+000036E8                           761  *------------------- PORTAL 
+000036E8                           762  *-------------------------------------------------------
+000036E8                           763  ENTER_PORTAL:
+000036E8  43F9 000043A7            764      LEA NEXT_LVL_MSG,A1 
+000036EE  6100 04DC                765      BSR DRAW_STRING
+000036F2  6100 04E8                766      BSR DRAW_NEWLINE
+000036F6  6000 05B6                767      BRA NEXT_LEVEL ;CHANGE TO LEVEL UP
+000036FA                           768  
+000036FA                           769  *-------------------------------------------------------
+000036FA                           770  *------------------- USE ITEMS 
+000036FA                           771  *-------------------------------------------------------
+000036FA                           772  USE_STAMINA_POTION:
+000036FA  1239 0000407A            773      MOVE.B STAMINA_POTIONS, D1
+00003700  B27C 0000                774      CMP #MIN_ALL, D1
+00003704  6700 0018                775      BEQ NO_POTIONS
+00003708                           776      
+00003708  5301                     777      SUB.B #1, D1
+0000370A  13C1 0000407A            778      MOVE.B D1, STAMINA_POTIONS
+00003710                           779      
+00003710  123C 001E                780      MOVE.B #30, D1
+00003714  13C1 0000406F            781      MOVE.B D1, STAMINA
+0000371A                           782      
+0000371A  6000 FC9C                783      BRA MAP_LOOP
+0000371E                           784      
+0000371E                           785  NO_POTIONS:
+0000371E  6100 0080                786      BSR INSUFFICIENT_RESOURCES 
+00003722  6000 05EE                787      BRA GAME_OVER
+00003726                           788  
+00003726                           789  USE_CAMP:
+00003726  1239 0000409C            790      MOVE.B CAMPS, D1
+0000372C  B27C 0000                791      CMP #MIN_ALL, D1
+00003730  6700 002C                792      BEQ NO_CAMPS
+00003734                           793      
+00003734  43F9 00004319            794      LEA CAMP_USED_MSG,A1
+0000373A  6100 0490                795      BSR DRAW_STRING
+0000373E  6100 049C                796      BSR DRAW_NEWLINE
+00003742                           797      
+00003742  5301                     798      SUB.B #1, D1
+00003744  13C1 0000409C            799      MOVE.B D1, CAMPS
+0000374A                           800      
+0000374A  123C 0064                801      MOVE.B #$64, D1
+0000374E  13C1 00004065            802      MOVE.B D1, HEALTH
+00003754  13C1 0000406F            803      MOVE.B D1, STAMINA
+0000375A                           804      
+0000375A  6000 01F8                805      BRA MOVE_PLAYER
+0000375E                           806      
+0000375E                           807  NO_CAMPS:
+0000375E  6100 0040                808      BSR INSUFFICIENT_RESOURCES
+00003762  6000 FC54                809      BRA MAP_LOOP
+00003766                           810      
+00003766                           811  PLAYER_HEAL:
+00003766                           812      ;CHECK SPELLS
+00003766  1239 0000408D            813      MOVE.B SPELL_SLOTS, D1
+0000376C  B23C 0000                814      CMP.B #0, D1
+00003770  6700 0026                815      BEQ NO_SPELLS
+00003774                           816      ;NO SPELLS
+00003774                           817  
+00003774  43F9 00003FAC            818      LEA HEAL_MSG, A1
+0000377A  6100 0450                819      BSR DRAW_STRING
+0000377E  6100 045C                820      BSR DRAW_NEWLINE
+00003782                           821      
+00003782                           822      ;ADD HEALTH
+00003782  143C 0032                823      MOVE.B #50, D2
+00003786  13C2 00004065            824      MOVE.B D2, HEALTH
+0000378C                           825      ;TAKE SPELL
+0000378C  5301                     826      SUB.B #1, D1
+0000378E  13C1 0000408D            827      MOVE.B D1, SPELL_SLOTS
+00003794                           828      
+00003794  6000 FC22                829      BRA MAP_LOOP  
+00003798                           830  
+00003798                           831  NO_SPELLS:
+00003798  6100 0006                832      BSR INSUFFICIENT_RESOURCES
+0000379C  6000 0574                833      BRA GAME_OVER
+000037A0                           834      
+000037A0                           835  INSUFFICIENT_RESOURCES:
+000037A0  43F9 00003F94            836      LEA NO_ITEMS_MSG, A1 
+000037A6  6100 0424                837      BSR DRAW_STRING
+000037AA  6100 0430                838      BSR DRAW_NEWLINE
+000037AE  4E75                     839      RTS
+000037B0                           840      
+000037B0                           841  *-------------------------------------------------------
+000037B0                           842  *------------------- FIGHT   
+000037B0                           843  *-------------------------------------------------------
+000037B0                           844  FIGHT_ENEMY:
+000037B0  6100 042A                845      BSR DRAW_NEWLINE
+000037B4  1239 000040A5            846      MOVE.B STRENGTH, D1
+000037BA  B239 000040D5            847      CMP.B ENEMY_STR, D1
+000037C0  6D00 005C                848      BLT LOSE_FIGHT
+000037C4                           849      
+000037C4  6000 001A                850      BRA WIN_FIGHT 
+000037C8                           851          
+000037C8                           852  FIGHT_BOSS:
+000037C8  6100 0412                853      BSR DRAW_NEWLINE
+000037CC  1239 000040A5            854      MOVE.B STRENGTH, D1
+000037D2  B239 000040E7            855      CMP.B BOSS_STR, D1
+000037D8  6D00 0044                856      BLT LOSE_FIGHT
+000037DC                           857      
+000037DC  6000 0026                858      BRA WIN_BOSS_FIGHT
+000037E0                           859          
+000037E0                           860  *-------------------------------------------------------
+000037E0                           861  *------------------- WIN FIGHT    
+000037E0                           862  *-------------------------------------------------------
+000037E0                           863  WIN_FIGHT:
+000037E0  6100 0072                864      BSR LOSE_HEALTH
+000037E4                           865      ;CHECK HEALTH 
+000037E4  1239 00004065            866      MOVE.B HEALTH, D1
+000037EA  B23C 0000                867      CMP.B #0, D1
+000037EE  6D00 002E                868      BLT LOSE_FIGHT
+000037F2                           869      
+000037F2  43F9 0000442B            870      LEA VICTORY_MSG, A1
+000037F8  6100 03D2                871      BSR DRAW_STRING
+000037FC  6100 03DE                872      BSR DRAW_NEWLINE
+00003800  6000 002A                873      BRA REWARD
+00003804                           874      
+00003804                           875  WIN_BOSS_FIGHT:
+00003804  43F9 00004398            876      LEA BOSS_VICTORY_MSG, A1
+0000380A  6100 03C0                877      BSR DRAW_STRING
+0000380E  6100 03CC                878      BSR DRAW_NEWLINE
+00003812  6100 03C8                879      BSR DRAW_NEWLINE
+00003816  6100 03C4                880      BSR DRAW_NEWLINE
+0000381A  6000 0492                881      BRA NEXT_LEVEL
+0000381E                           882  
+0000381E                           883  *-------------------------------------------------------
+0000381E                           884  *------------------- LOSE FIGHT    
+0000381E                           885  *-------------------------------------------------------
+0000381E                           886  LOSE_FIGHT:   
+0000381E  43F9 0000440F            887      LEA DEATH_MSG, A1
+00003824  6100 03A6                888      BSR DRAW_STRING
+00003828  6000 04E8                889      BRA GAME_OVER
+0000382C                           890  
+0000382C                           891  *-------------------------------------------------------
+0000382C                           892  *------------------- FIGHT REWARDS
+0000382C                           893  *-------------------------------------------------------
+0000382C                           894  REWARD:
+0000382C  6100 00A8                895      BSR ENEMY_STATS_UP
+00003830  6100 0094                896      BSR PLAYER_STR_UP
+00003834  6100 0070                897      BSR PLAYER_HEALTH_UP
+00003838                           898      
+00003838  6100 00E4                899      BSR RNG_1_3
+0000383C  B23C 0001                900      CMP.B #1, D1
+00003840  6700 0026                901      BEQ OBTAIN_POTION
+00003844                           902      
+00003844  B23C 0002                903      CMP.B #2, D1
+00003848  6700 0032                904      BEQ OBTAIN_GOLD
+0000384C                           905      
+0000384C  B23C 0003                906      CMP.B #3, D1
+00003850  6700 0040                907      BEQ OBTAIN_CAMP
+00003854                           908  
+00003854                           909  LOSE_HEALTH:
+00003854  1839 00004065            910      MOVE.B HEALTH, D4
+0000385A  6100 00A6                911      BSR RNG_1_4
+0000385E  9801                     912      SUB.B D1, D4
+00003860  13C4 00004065            913      MOVE.B D4, HEALTH
+00003866  4E75                     914      RTS
+00003868                           915      
+00003868                           916  OBTAIN_POTION:
+00003868  1839 0000407A            917      MOVE.B STAMINA_POTIONS, D4
+0000386E  5204                     918      ADD.B #1, D4
+00003870  13C4 0000407A            919      MOVE.B D4, STAMINA_POTIONS
+00003876  4244                     920      CLR D4
+00003878  6000 00DA                921      BRA MOVE_PLAYER
+0000387C                           922      
+0000387C                           923  OBTAIN_GOLD:
+0000387C  1839 000040B1            924      MOVE.B GOLD, D4
+00003882  0604 000A                925      ADD.B #10, D4
+00003886  13C4 000040B1            926      MOVE.B D4, GOLD
+0000388C  4244                     927      CLR D4
+0000388E  6000 00C4                928      BRA MOVE_PLAYER
+00003892                           929  
+00003892                           930  OBTAIN_CAMP:
+00003892  1839 0000409C            931      MOVE.B CAMPS, D4
+00003898  5204                     932      ADD.B #1, D4
+0000389A  13C4 0000409C            933      MOVE.B D4, CAMPS
+000038A0  4244                     934      CLR D4
+000038A2  6000 00B0                935      BRA MOVE_PLAYER
+000038A6                           936  
+000038A6                           937  PLAYER_HEALTH_UP:
+000038A6  1839 00004064            938      MOVE.B MAX_HEALTH, D4
+000038AC  5204                     939      ADD.B #1, D4
+000038AE  13C4 00004064            940      MOVE.B D4, MAX_HEALTH
+000038B4  4E75                     941      RTS
+000038B6                           942      
+000038B6                           943  PLAYER_SPELL_UP:
+000038B6  1839 0000408D            944      MOVE.B SPELL_SLOTS, D4
+000038BC  5204                     945      ADD.B #1, D4
+000038BE  13C4 0000408D            946      MOVE.B D4, SPELL_SLOTS
+000038C4  4E75                     947      RTS
+000038C6                           948      
+000038C6                           949  PLAYER_STR_UP:
+000038C6  1839 000040A5            950      MOVE.B STRENGTH, D4
+000038CC  5204                     951      ADD.B #1, D4
+000038CE  13C4 000040A5            952      MOVE.B D4, STRENGTH
+000038D4  4E75                     953      RTS
+000038D6                           954      
+000038D6                           955  ENEMY_STATS_UP:
+000038D6  1839 000040D5            956      MOVE.B ENEMY_STR, D4
+000038DC  5204                     957      ADD.B #1, D4
+000038DE  13C4 000040D5            958      MOVE.B D4, ENEMY_STR
+000038E4  4E75                     959      RTS
+000038E6                           960  *-------------------------------------------------------
+000038E6                           961  *------------------- REPEATLY USED FUNCTIONS 
+000038E6                           962  *------------------- RNG FUNCTIONS 
+000038E6                           963  *-------------------------------------------------------
+000038E6                           964  RNG_0_1:
+000038E6  6100 0052                965      BSR GET_SEED
+000038EA                           966      
+000038EA  C2BC 00007FFF            967      AND.L   #$7FFF,D1           ; prevent overflow in divu
+000038F0  82FC 000A                968      DIVU    #10,D1              ; time count / max number
+000038F4  4841                     969      SWAP    D1              ; swap upper and lower words of D1 to get remainder 
+000038F6  48C1                     970      EXT.L   D1              ; convert lower word to long
+000038F8                           971      
+000038F8  B27C 0008                972      CMP #8, D1  ;RESULT MUST BE 8-9 OR REPEATS
+000038FC  6DE8                     973      BLT RNG_0_1
+000038FE                           974      
+000038FE  5101                     975      SUB.B #8,D1 ;RESULT BECOMES 0 OR 1 8-8=0 8-9=1
+00003900  4E75                     976      RTS
+00003902                           977  
+00003902                           978  RNG_1_4:
+00003902  6100 0036                979      BSR GET_SEED
+00003906                           980      
+00003906  C2BC 00007FFF            981      AND.L   #$7FFF,D1           ; prevent overflow in divu
+0000390C  82FC 000A                982      DIVU    #10,D1              ; time count / max number
+00003910  4841                     983      SWAP    D1              ; swap upper and lower words of D1 to get remainder 
+00003912  48C1                     984      EXT.L   D1              ; convert lower word to long
+00003914                           985      
+00003914  B27C 0006                986      CMP #6, D1  ;RESULT MUST BE 6-9 OR REPEATS
+00003918  6DE8                     987      BLT RNG_1_4
+0000391A                           988      
+0000391A  5B01                     989      SUB.B #5,D1 ;RESULT BECOMES 1 TO 4
+0000391C  4E75                     990      RTS
+0000391E                           991  
+0000391E                           992  RNG_1_3:
+0000391E  6100 001A                993      BSR GET_SEED
+00003922                           994      
+00003922  C2BC 00007FFF            995      AND.L   #$7FFF,D1           ; prevent overflow in divu
+00003928  82FC 000A                996      DIVU    #10,D1              ; time count / max number
+0000392C  4841                     997      SWAP    D1              ; swap upper and lower words of D1 to get remainder 
+0000392E  48C1                     998      EXT.L   D1              ; convert lower word to long
+00003930                           999      
+00003930  B27C 0007               1000      CMP #7, D1  ;RESULT MUST BE 7-9 OR REPEATS
+00003934  6DE8                    1001      BLT RNG_1_3
+00003936                          1002      
+00003936  5D01                    1003      SUB.B #6,D1 ;RESULT BECOMES 1 TO 3
+00003938  4E75                    1004      RTS
+0000393A                          1005  
+0000393A                          1006  GET_SEED:
+0000393A  3E3C 3999               1007      MOVE.W #$3999, D7
+0000393E  6100 000A               1008      BSR DELAY
+00003942  103C 0008               1009      MOVE.B  #8,D0   ;TIME STAMP
+00003946  4E4F                    1010      TRAP    #15 
+00003948  4E75                    1011      RTS 
+0000394A                          1012      
+0000394A                          1013  DELAY:
+0000394A  5347                    1014      SUB.W #1, D7 ;COUNTER--
+0000394C  BE7C 0000               1015      CMP.W #0, D7 
+00003950  66F8                    1016      BNE DELAY
+00003952  4E75                    1017      RTS
+00003954                          1018      
+00003954                          1019  *-------------------------------------------------------
+00003954                          1020  *------------------- INPUT MOVEMENT
+00003954                          1021  *-------------------------------------------------------
+00003954                          1022  MOVE_PLAYER:
+00003954  6100 0294               1023      BSR DRAW_HUD
+00003958                          1024  
+00003958                          1025      ;GET INPUT
+00003958  43F9 00003E4E           1026      LEA WASD_MSG, A1
+0000395E  6100 026C               1027      BSR DRAW_STRING
+00003962  6100 0278               1028      BSR DRAW_NEWLINE
+00003966  6100 024C               1029      BSR GET_INPUT
+0000396A  6100 0270               1030      BSR DRAW_NEWLINE
+0000396E                          1031      
+0000396E                          1032      ;GO DIRECTION
+0000396E  B27C 0057               1033      CMP #W, D1
+00003972  6700 003E               1034      BEQ MOVE_NORTH
+00003976  B27C 0053               1035      CMP #S, D1
+0000397A  6700 0098               1036      BEQ MOVE_SOUTH
+0000397E  B27C 0044               1037      CMP #D, D1
+00003982  6700 0154               1038      BEQ MOVE_EAST
+00003986  B27C 0041               1039      CMP #A, D1
+0000398A  6700 00EA               1040      BEQ MOVE_WEST
+0000398E                          1041      
+0000398E  B27C 0077               1042      CMP #$77, D1
+00003992  6700 001E               1043      BEQ MOVE_NORTH
+00003996  B27C 0073               1044      CMP #$73, D1
+0000399A  6700 0078               1045      BEQ MOVE_SOUTH
+0000399E  B27C 0064               1046      CMP #$64, D1
+000039A2  6700 0134               1047      BEQ MOVE_EAST
+000039A6  B27C 0061               1048      CMP #$61, D1
+000039AA  6700 00CA               1049      BEQ MOVE_WEST
+000039AE                          1050      
+000039AE                          1051      ;KEY NOT WASD
+000039AE  6600 01EE               1052      BNE INVALID_MOVE_INPUT
+000039B2                          1053      
+000039B2                          1054  MOVE_NORTH:
+000039B2  6100 0228               1055      BSR DRAW_NEWLINE 
+000039B6                          1056      ;MOVEMENT CHECKS 
+000039B6                          1057      ;CHECK IF YOU CAN MOVE DIRECTION FIRST
+000039B6  6100 0182               1058      BSR INVALID_MOVEMENT_CHECK_N
+000039BA                          1059  
+000039BA                          1060      ;USE ENERGY
+000039BA  1239 0000406F           1061      MOVE.B STAMINA, D1
+000039C0  0401 000A               1062      SUB.B #10, D1
+000039C4  13C1 0000406F           1063      MOVE.B D1, STAMINA
+000039CA                          1064  
+000039CA                          1065      ;PLAY MSG    
+000039CA  43F9 00003FEA           1066      LEA NORTH_MSG, A1
+000039D0  6100 01FA               1067      BSR DRAW_STRING
+000039D4  6100 0206               1068      BSR DRAW_NEWLINE
+000039D8                          1069      
+000039D8                          1070      ;UPDATE CO-ORD
+000039D8  1239 000040C7           1071      MOVE.B PLAYER_Y, D1
+000039DE  5301                    1072      SUB.B #1, D1
+000039E0  13C1 000040C7           1073      MOVE.B D1, PLAYER_Y
+000039E6                          1074   
+000039E6  6000 F9D0               1075      BRA MAP_LOOP
+000039EA                          1076      
+000039EA                          1077  INVALID_NORTH:
+000039EA                          1078      ;TEMP MOVE UPDATE CO-ORD
+000039EA  1239 000040C7           1079      MOVE.B PLAYER_Y, D1
+000039F0  5301                    1080      SUB.B #1, D1
+000039F2  13C1 000040C7           1081      MOVE.B D1, PLAYER_Y
+000039F8                          1082      
+000039F8                          1083      ;CHECK OUT OF BOUNDS
+000039F8  B27C 00FF               1084      CMP #$FF, D1
+000039FC  6700 0004               1085      BEQ INVALID_MOVEMENT_N
+00003A00  4E75                    1086      RTS
+00003A02                          1087      
+00003A02                          1088  INVALID_MOVEMENT_N:
+00003A02                          1089      ;UNDO TEMP MOVE
+00003A02  1239 000040C7           1090      MOVE.B PLAYER_Y, D1
+00003A08  5201                    1091      ADD.B #1, D1
+00003A0A  13C1 000040C7           1092      MOVE.B D1, PLAYER_Y
+00003A10  6000 0166               1093      BRA INVALID_MOVEMENT
+00003A14                          1094     
+00003A14                          1095  MOVE_SOUTH:
+00003A14  6100 01C6               1096      BSR DRAW_NEWLINE  
+00003A18                          1097      ;CHECK IF YOU CAN MOVE DIRECTION FIRST
+00003A18  6100 0140               1098      BSR INVALID_MOVEMENT_CHECK_S
+00003A1C                          1099      
+00003A1C                          1100      ;USE ENERGY
+00003A1C  1239 0000406F           1101      MOVE.B STAMINA, D1
+00003A22  0401 000A               1102      SUB.B #10, D1
+00003A26  13C1 0000406F           1103      MOVE.B D1, STAMINA
+00003A2C                          1104  
+00003A2C                          1105      ;PLAY MSG    
+00003A2C  43F9 00003FFA           1106      LEA SOUTH_MSG, A1
+00003A32  6100 0198               1107      BSR DRAW_STRING
+00003A36  6100 01A4               1108      BSR DRAW_NEWLINE
+00003A3A                          1109      
+00003A3A                          1110      ;UPDATE CO-ORD
+00003A3A  1239 000040C7           1111      MOVE.B PLAYER_Y, D1
+00003A40  5201                    1112      ADD.B #1, D1
+00003A42  13C1 000040C7           1113      MOVE.B D1, PLAYER_Y
+00003A48                          1114      
+00003A48  6000 F96E               1115      BRA MAP_LOOP
+00003A4C                          1116      
+00003A4C                          1117  INVALID_SOUTH:
+00003A4C                          1118      ;TEMP MOVE UPDATE CO-ORD
+00003A4C  1239 000040C7           1119      MOVE.B PLAYER_Y, D1
+00003A52  5201                    1120      ADD.B #1, D1
+00003A54  13C1 000040C7           1121      MOVE.B D1, PLAYER_Y
+00003A5A                          1122      
+00003A5A                          1123      ;CHECK OUT OF BOUNDS
+00003A5A  B27C 0004               1124      CMP #$4, D1
+00003A5E  6700 0004               1125      BEQ INVALID_MOVEMENT_S
+00003A62  4E75                    1126      RTS
+00003A64                          1127      
+00003A64                          1128  INVALID_MOVEMENT_S:
+00003A64                          1129      ;UNDO TEMP MOVE
+00003A64  1239 000040C7           1130      MOVE.B PLAYER_Y, D1
+00003A6A  5301                    1131      SUB.B #1, D1
+00003A6C  13C1 000040C7           1132      MOVE.B D1, PLAYER_Y
+00003A72  6000 0104               1133      BRA INVALID_MOVEMENT
+00003A76                          1134     
+00003A76                          1135  MOVE_WEST:
+00003A76  6100 0164               1136      BSR DRAW_NEWLINE  
+00003A7A                          1137      ;CHECK IF YOU CAN MOVE DIRECTION FIRST
+00003A7A  6100 00CE               1138      BSR INVALID_MOVEMENT_CHECK_W
+00003A7E                          1139      ;USE ENERGY
+00003A7E  1239 0000406F           1140      MOVE.B STAMINA, D1
+00003A84  0401 000A               1141      SUB.B #10, D1
+00003A88  13C1 0000406F           1142      MOVE.B D1, STAMINA
+00003A8E                          1143      ;PLAY MSG    
+00003A8E  43F9 00004019           1144      LEA WEST_MSG, A1
+00003A94  6100 0136               1145      BSR DRAW_STRING
+00003A98  6100 0142               1146      BSR DRAW_NEWLINE
+00003A9C                          1147      ;UPDATE CO-ORD
+00003A9C  1239 000040B9           1148      MOVE.B PLAYER_X, D1
+00003AA2  5301                    1149      SUB.B #1, D1
+00003AA4  13C1 000040B9           1150      MOVE.B D1, PLAYER_X
+00003AAA                          1151      
+00003AAA  6000 F90C               1152      BRA MAP_LOOP
+00003AAE                          1153      
+00003AAE                          1154  INVALID_WEST:
+00003AAE                          1155      ;TEMP MOVE UPDATE CO-ORD
+00003AAE  1239 000040B9           1156      MOVE.B PLAYER_X, D1
+00003AB4  5301                    1157      SUB.B #1, D1
+00003AB6  13C1 000040B9           1158      MOVE.B D1, PLAYER_X
+00003ABC                          1159      
+00003ABC                          1160      ;CHECK OUT OF BOUNDS
+00003ABC  B27C 00FF               1161      CMP #$FF, D1
+00003AC0  6700 0004               1162      BEQ INVALID_MOVEMENT_W
+00003AC4  4E75                    1163      RTS
+00003AC6                          1164      
+00003AC6                          1165  INVALID_MOVEMENT_W:
+00003AC6                          1166      ;UNDO TEMP MOVE
+00003AC6  1239 000040B9           1167      MOVE.B PLAYER_X, D1
+00003ACC  5201                    1168      ADD.B #1, D1
+00003ACE  13C1 000040B9           1169      MOVE.B D1, PLAYER_X
+00003AD4  6000 00A2               1170      BRA INVALID_MOVEMENT   
+00003AD8                          1171   
+00003AD8                          1172      
+00003AD8                          1173  MOVE_EAST:
+00003AD8  6100 0102               1174      BSR DRAW_NEWLINE  
+00003ADC                          1175      ;CHECK IF YOU CAN MOVE DIRECTION FIRST
+00003ADC  6100 008C               1176      BSR INVALID_MOVEMENT_CHECK_E
+00003AE0                          1177      ;USE ENERGY
+00003AE0  1239 0000406F           1178      MOVE.B STAMINA, D1
+00003AE6  0401 000A               1179      SUB.B #10, D1
+00003AEA  13C1 0000406F           1180      MOVE.B D1, STAMINA
+00003AF0                          1181      ;PLAY MSG    
+00003AF0  43F9 0000400A           1182      LEA EAST_MSG, A1
+00003AF6  6100 00D4               1183      BSR DRAW_STRING
+00003AFA  6100 00E0               1184      BSR DRAW_NEWLINE
+00003AFE                          1185      ;UPDATE CO-ORD
+00003AFE  1239 000040B9           1186      MOVE.B PLAYER_X, D1
+00003B04  5201                    1187      ADD.B #1, D1
+00003B06  13C1 000040B9           1188      MOVE.B D1, PLAYER_X
+00003B0C                          1189         
+00003B0C  6000 F8AA               1190      BRA MAP_LOOP
+00003B10                          1191     
+00003B10                          1192  INVALID_EAST:
+00003B10                          1193      ;TEMP MOVE UPDATE CO-ORD
+00003B10  1239 000040B9           1194      MOVE.B PLAYER_X, D1
+00003B16  5201                    1195      ADD.B #1, D1
+00003B18  13C1 000040B9           1196      MOVE.B D1, PLAYER_X
+00003B1E                          1197      
+00003B1E                          1198      ;CHECK OUT OF BOUNDS
+00003B1E  B27C 0004               1199      CMP #$4, D1
+00003B22  6700 0004               1200      BEQ INVALID_MOVEMENT_E
+00003B26  4E75                    1201      RTS
+00003B28                          1202      
+00003B28                          1203  INVALID_MOVEMENT_E:
+00003B28                          1204      ;UNDO TEMP MOVE
+00003B28  1239 000040B9           1205      MOVE.B PLAYER_X, D1
+00003B2E  5301                    1206      SUB.B #1, D1
+00003B30  13C1 000040B9           1207      MOVE.B D1, PLAYER_X
+00003B36  6000 0040               1208      BRA INVALID_MOVEMENT   
+00003B3A                          1209      
+00003B3A                          1210  INVALID_MOVEMENT_CHECK_N:
+00003B3A                          1211      ;Y=0 NO NORTH
+00003B3A  1239 000040C7           1212      MOVE.B PLAYER_Y, D1
+00003B40  B27C 0000               1213      CMP #0, D1
+00003B44  6700 FEA4               1214      BEQ INVALID_NORTH
+00003B48  4E75                    1215      RTS
+00003B4A                          1216      
+00003B4A                          1217  INVALID_MOVEMENT_CHECK_W:
+00003B4A                          1218      ;X=0 NO WEST
+00003B4A  1239 000040B9           1219      MOVE.B PLAYER_X, D1
+00003B50  B27C 0000               1220      CMP #0, D1
+00003B54  6700 FF58               1221      BEQ INVALID_WEST
+00003B58  4E75                    1222      RTS
+00003B5A                          1223      
+00003B5A                          1224  INVALID_MOVEMENT_CHECK_S:    
+00003B5A                          1225      ;Y=3 NO SOUTH
+00003B5A  1239 000040C7           1226      MOVE.B PLAYER_Y, D1
+00003B60  B27C 0003               1227      CMP #3, D1
+00003B64  6700 FEE6               1228      BEQ INVALID_SOUTH
+00003B68  4E75                    1229      RTS
+00003B6A                          1230      
+00003B6A                          1231  INVALID_MOVEMENT_CHECK_E:    
+00003B6A                          1232      ;X=3 NO EAST
+00003B6A  1239 000040B9           1233      MOVE.B PLAYER_X, D1
+00003B70  B27C 0003               1234      CMP #3, D1
+00003B74  679A                    1235      BEQ INVALID_EAST  
+00003B76                          1236      
+00003B76  4E75                    1237      RTS
+00003B78                          1238  
+00003B78                          1239  INVALID_MOVEMENT:
+00003B78  6100 0062               1240      BSR DRAW_NEWLINE  
+00003B7C                          1241      ;USE ENERGY
+00003B7C  1239 0000406F           1242      MOVE.B STAMINA, D1
+00003B82  0401 000A               1243      SUB.B #10, D1
+00003B86  13C1 0000406F           1244      MOVE.B D1, STAMINA
+00003B8C                          1245      ;PLAY MSG    
+00003B8C  43F9 00004028           1246      LEA INVALID_DIRECTION_MSG, A1
+00003B92  6100 0038               1247      BSR DRAW_STRING
+00003B96  6100 0044               1248      BSR DRAW_NEWLINE       
+00003B9A                          1249      
+00003B9A  6000 F81C               1250      BRA MAP_LOOP
+00003B9E                          1251      
+00003B9E                          1252  INVALID_MOVE_INPUT:
+00003B9E  6100 003C               1253      BSR DRAW_NEWLINE  
+00003BA2                          1254      ;USE ENERGY
+00003BA2                          1255      ;PLAY MSG    
+00003BA2  43F9 00003D3A           1256      LEA INVALID_INPUT, A1
+00003BA8  6100 0022               1257      BSR DRAW_STRING
+00003BAC  6100 002E               1258      BSR DRAW_NEWLINE
+00003BB0                          1259         
+00003BB0  6000 FDA2               1260      BRA MOVE_PLAYER
+00003BB4                          1261  
+00003BB4                          1262  *-------------------------------------------------------
+00003BB4                          1263  *------------------- GET INPUT  
+00003BB4                          1264  *-------------------------------------------------------
+00003BB4                          1265  GET_INPUT:
+00003BB4  103C 0005               1266      MOVE.B #5, D0
+00003BB8  4E4F                    1267      TRAP #15
+00003BBA  4E75                    1268      RTS
+00003BBC                          1269  
+00003BBC                          1270  *-------------------------------------------------------
+00003BBC                          1271  *------------------- INVALID INPUTS    
+00003BBC                          1272  *-------------------------------------------------------
+00003BBC                          1273  INVALID_INPUTS:
+00003BBC  43F9 00003D3A           1274      LEA INVALID_INPUT, A1
+00003BC2  6100 0008               1275      BSR DRAW_STRING
+00003BC6  6100 0014               1276      BSR DRAW_NEWLINE
+00003BCA  4E75                    1277      RTS
+00003BCC                          1278      
+00003BCC                          1279  *-------------------------------------------------------
+00003BCC                          1280  *------------------- DRAW
+00003BCC                          1281  *-------------------------------------------------------
+00003BCC                          1282  ;OUTPUT MESSAGES 
+00003BCC                          1283  DRAW_STRING:
+00003BCC  103C 000E               1284      MOVE.B #14, D0
+00003BD0  4E4F                    1285      TRAP #15
+00003BD2  4E75                    1286      RTS
+00003BD4                          1287  
+00003BD4                          1288  DRAW_NUMBER:
+00003BD4  103C 0003               1289      MOVE.B #3, D0
+00003BD8  4E4F                    1290      TRAP #15  
+00003BDA  4E75                    1291      RTS
+00003BDC                          1292  
+00003BDC                          1293  DRAW_NEWLINE:
+00003BDC  43F9 00003D37           1294      LEA     CRLF,A1                 
+00003BE2  303C 000E               1295      MOVE    #14,D0          
+00003BE6  4E4F                    1296      TRAP    #15                  
+00003BE8  4E75                    1297      RTS 
+00003BEA                          1298      
+00003BEA                          1299  DRAW_HUD:
+00003BEA                          1300      ;PLAY MSG
+00003BEA  43F9 00004066           1301      LEA HEALTH_MSG, A1
+00003BF0  61DA                    1302      BSR DRAW_STRING
+00003BF2  1239 00004065           1303      MOVE.B HEALTH, D1
+00003BF8  61DA                    1304      BSR DRAW_NUMBER
+00003BFA  61E0                    1305      BSR DRAW_NEWLINE
+00003BFC                          1306      
+00003BFC  43F9 00004070           1307      LEA STAMINA_MSG, A1
+00003C02  61C8                    1308      BSR DRAW_STRING
+00003C04  1239 0000406F           1309      MOVE.B STAMINA, D1
+00003C0A  61C8                    1310      BSR DRAW_NUMBER
+00003C0C  61CE                    1311      BSR DRAW_NEWLINE
+00003C0E                          1312  
+00003C0E  43F9 000040A6           1313      LEA PLAYER_STRENGTH_MSG, A1
+00003C14  61B6                    1314      BSR DRAW_STRING
+00003C16  1239 000040A5           1315      MOVE.B STRENGTH, D1
+00003C1C  61B6                    1316      BSR DRAW_NUMBER
+00003C1E  61BC                    1317      BSR DRAW_NEWLINE
+00003C20                          1318  
+00003C20                          1319      
+00003C20  43F9 0000408E           1320      LEA SPELLS_MSG, A1
+00003C26  61A4                    1321      BSR DRAW_STRING
+00003C28  1239 0000408D           1322      MOVE.B SPELL_SLOTS, D1
+00003C2E  61A4                    1323      BSR DRAW_NUMBER
+00003C30  61AA                    1324      BSR DRAW_NEWLINE
+00003C32                          1325      
+00003C32  43F9 0000409D           1326      LEA CAMPS_MSG, A1
+00003C38  6192                    1327      BSR DRAW_STRING
+00003C3A  1239 0000409C           1328      MOVE.B CAMPS, D1
+00003C40  6192                    1329      BSR DRAW_NUMBER
+00003C42  6198                    1330      BSR DRAW_NEWLINE
+00003C44                          1331      
+00003C44  43F9 0000407B           1332      LEA POTIONS_MSG, A1
+00003C4A  6180                    1333      BSR DRAW_STRING
+00003C4C  1239 0000407A           1334      MOVE.B STAMINA_POTIONS, D1
+00003C52  6180                    1335      BSR DRAW_NUMBER
+00003C54  6186                    1336      BSR DRAW_NEWLINE
+00003C56                          1337      
+00003C56  43F9 000040B2           1338      LEA GOLD_MSG, A1
+00003C5C  6100 FF6E               1339      BSR DRAW_STRING
+00003C60  1239 000040B1           1340      MOVE.B GOLD, D1
+00003C66  6100 FF6C               1341      BSR DRAW_NUMBER
+00003C6A  6100 FF70               1342      BSR DRAW_NEWLINE
+00003C6E                          1343      
+00003C6E  43F9 000040BA           1344      LEA CURRENT_X_MSG ,A1
+00003C74  6100 FF56               1345      BSR DRAW_STRING
+00003C78  1239 000040B9           1346      MOVE.B PLAYER_X, D1
+00003C7E  6100 FF54               1347      BSR DRAW_NUMBER
+00003C82  6100 FF58               1348      BSR DRAW_NEWLINE
+00003C86                          1349      
+00003C86  43F9 000040C8           1350      LEA CURRENT_Y_MSG ,A1
+00003C8C  6100 FF3E               1351      BSR DRAW_STRING
+00003C90  1239 000040C7           1352      MOVE.B PLAYER_Y, D1
+00003C96  6100 FF3C               1353      BSR DRAW_NUMBER
+00003C9A  6100 FF40               1354      BSR DRAW_NEWLINE
+00003C9E                          1355      
+00003C9E  43F9 00003FCF           1356      LEA MOVE_MSG, A1
+00003CA4  6100 FF26               1357      BSR DRAW_STRING
+00003CA8  6100 FF32               1358      BSR DRAW_NEWLINE
+00003CAC                          1359  
+00003CAC  4E75                    1360      RTS
+00003CAE                          1361  *-------------------------------------------------------
+00003CAE                          1362  *------------------- LEVEL COMPLETE 
+00003CAE                          1363  *------------------------------------------------------- 
+00003CAE                          1364  NEXT_LEVEL:
+00003CAE  6100 0040               1365      BSR BOSS_STATS_UP
+00003CB2  6100 002A               1366      BSR INCREASE_LEVEL
+00003CB6  6100 0014               1367      BSR RESET_PLAYER_POS
+00003CBA                          1368      
+00003CBA  1239 00003D28           1369      MOVE.B MODE_TEST, D1
+00003CC0  B23C 0000               1370      CMP.B #0, D1
+00003CC4  6700 003A               1371      BEQ GAME_COMPLETE
+00003CC8  6000 F420               1372      BRA ENDLESS_LOOP   
+00003CCC                          1373      
+00003CCC                          1374  RESET_PLAYER_POS:
+00003CCC  13FC 0000 000040B9      1375      MOVE.B #0, PLAYER_X
+00003CD4  13FC 0000 000040C7      1376      MOVE.B #0, PLAYER_Y
+00003CDC  4E75                    1377      RTS
+00003CDE                          1378  
+00003CDE                          1379  INCREASE_LEVEL:
+00003CDE  1839 00003D31           1380      MOVE.B LEVEL, D4
+00003CE4  5204                    1381      ADD.B #1, D4
+00003CE6  13C4 00003D31           1382      MOVE.B D4, LEVEL
+00003CEC  4244                    1383      CLR D4
+00003CEE  4E75                    1384      RTS 
+00003CF0                          1385      
+00003CF0                          1386      
+00003CF0                          1387  BOSS_STATS_UP:
+00003CF0  1839 000040E7           1388      MOVE.B BOSS_STR, D4
+00003CF6  5804                    1389      ADD.B #4, D4
+00003CF8  13C4 000040E7           1390      MOVE.B D4, BOSS_STR
+00003CFE  4E75                    1391      RTS
+00003D00                          1392  *-------------------------------------------------------
+00003D00                          1393  *------------------- GAME COMPLETE 
+00003D00                          1394  *-------------------------------------------------------
+00003D00                          1395  GAME_COMPLETE:
+00003D00  43F9 00003F4F           1396      LEA GAME_COMPLETE_MSG, A1
+00003D06  6100 FEC4               1397      BSR DRAW_STRING
+00003D0A  6100 FED0               1398      BSR DRAW_NEWLINE
+00003D0E  6000 0014               1399      BRA EXIT
+00003D12                          1400  
+00003D12                          1401  *-------------------------------------------------------
+00003D12                          1402  *------------------- GAME OVER 
+00003D12                          1403  *-------------------------------------------------------
+00003D12                          1404  GAME_OVER:
+00003D12  43F9 00003F3A           1405      LEA GAME_END_MSG, A1
+00003D18  6100 FEB2               1406      BSR DRAW_STRING
+00003D1C  6100 FEBE               1407      BSR DRAW_NEWLINE
+00003D20  6000 0002               1408      BRA EXIT
+00003D24                          1409  
+00003D24                          1410  EXIT:
+00003D24  FFFF FFFF               1411      SIMHALT  
+00003D28                          1412           
+00003D28                          1413  *-------------------------------------------------------
+00003D28                          1414  *------------------- VARIABLES 
+00003D28                          1415  *------------------- GAME INFO   
+00003D28                          1416  *-------------------------------------------------------
+00003D28= 00                      1417  MODE_TEST DC.B 0
+00003D29                          1418  
+00003D29= 4C 45 56 45 4C 3A ...   1419  CURRENT_LEVEL_MSG DC.B 'LEVEL: ',0
+00003D31= 01                      1420  LEVEL DC.B 1
+00003D32                          1421  
+00003D32= 00000000                1422  SEED DC.L 0
+00003D36= 00                      1423  MAPVALUE DC.B 0 
+00003D37                          1424  
+00003D37                          1425  ;GAME SETUP MESSAGES
+00003D37= 0D 0A 00                1426  CRLF DC.B $0D,$0A,0
+00003D3A= 49 4E 56 41 4C 49 ...   1427  INVALID_INPUT DC.B 'INVALID INPUT.',0
+00003D49= 47 41 4D 45 20 53 ...   1428  START_MSG DC.B 'GAME START!',0
+00003D55= 44 4F 20 59 4F 55 ...   1429  MODE_MSG DC.B 'DO YOU WANT TO PLAY A MISSION OR ENDLESS MODE? 1=MISSION 2=ENDLESS',0
+00003D98                          1430  
+00003D98= 4D 49 53 53 49 4F ...   1431  MISSION_MODE_MSG DC.B 'MISSION MODE CHOOSEN.',0
+00003DAE= 45 4E 44 4C 45 53 ...   1432  ENDLESS_MODE_MSG DC.B 'ENDLESS MODE CHOOSEN.',0
+00003DC4                          1433  
+00003DC4                          1434  ;GAME INTRO MESSAGES
+00003DC4= 57 45 4C 43 4F 4D ...   1435  WELCOME_MSG DC.B 'WELCOME TO THE SMALL WORLD.',0
+00003DE0= 59 4F 55 20 45 51 ...   1436  EQUIP_MSG DC.B 'YOU EQUIP A NEEDLE SWORD.',0
+00003DFA= 59 4F 55 20 4C 45 ...   1437  LEARN_HEAL_MSG DC.B 'YOU LEARN THE HEAL SPELL. (HEAL TO FULL HEALTH)',0
+00003E2A= 4D 4F 56 49 4E 47 ...   1438  MOVE_COST_MSG DC.B 'MOVING IN THE MAP COSTS 10 STAMINA.',0
+00003E4E= 57 20 54 4F 20 4D ...   1439  WASD_MSG DC.B 'W TO MOVE NORTH. A TO MOVE WEST. S TO MOVE SOUTH. E TO EAST.',0
+00003E8B= 28 30 2C 30 29 20 ...   1440  START_COORD_MSG DC.B '(0,0) IS START POINT FOR EVERY LEVEL AND THE MOST NORTH WEST POINT OF THE MAP.',0
+00003EDA                          1441  
+00003EDA                          1442  ;QUESTS
+00003EDA= 53 55 52 56 49 56 ...   1443  SURVIVE_MSG DC.B 'SURVIVE AS LONG AS POSSIBLE.',0
+00003EF7= 44 45 46 45 41 54 ...   1444  DEFEAT_BOSS_MSG DC.B 'DEFEAT THE BOSS!',0
+00003F08= 46 49 4E 44 20 54 ...   1445  FIND_EXIT_MSG DC.B 'FIND THE EXIT.',0
+00003F17= 47 41 4D 45 20 4F ...   1446  GAME_OVER_MSG DC.B 'GAME OVER WHEN HEALTH OR STAMINA 0',0
+00003F3A                          1447  
+00003F3A                          1448  ;GAME OVER/COMPLETE
+00003F3A= 47 41 4D 45 20 4F ...   1449  GAME_END_MSG DC.B 'GAME OVER! YOU LOSE!',0
+00003F4F= 47 41 4D 45 20 43 ...   1450  GAME_COMPLETE_MSG DC.B 'GAME COMPLETE! YOU WIN!',0
+00003F67                          1451  
+00003F67                          1452  ;USE ITEMS
+00003F67                          1453  ;WHEN STAMINA == 0 USE POTION
+00003F67= 53 54 41 4D 49 4E ...   1454  POTION_USED_MSG DC.B 'STAMINA POTION USED, STAMINA RECOVERED BY 10',0
+00003F94= 49 4E 53 55 46 46 ...   1455  NO_ITEMS_MSG DC.B 'INSUFFICIENT RESOURCES.',0
+00003FAC                          1456  
+00003FAC                          1457  ;HEAL
+00003FAC= 55 53 45 44 20 48 ...   1458  HEAL_MSG DC.B 'USED HEAL, HEALTH RECOVERED FULLY.',0
+00003FCF                          1459  
+00003FCF                          1460  ;MOVE
+00003FCF= 57 48 49 43 48 20 ...   1461  MOVE_MSG DC.B 'WHICH DIRECTION DO YOU GO?',0
+00003FEA= 59 4F 55 20 57 45 ...   1462  NORTH_MSG DC.B 'YOU WENT NORTH.',0
+00003FFA= 59 4F 55 20 57 45 ...   1463  SOUTH_MSG DC.B 'YOU WENT SOUTH.',0
+0000400A= 59 4F 55 20 57 45 ...   1464  EAST_MSG DC.B 'YOU WENT EAST.',0
+00004019= 59 4F 55 20 57 45 ...   1465  WEST_MSG DC.B 'YOU WENT WEST.',0
+00004028= 59 4F 55 20 57 41 ...   1466  INVALID_DIRECTION_MSG DC.B 'YOU WASTE YOUR ENERGY GOING IN A CIRCLE.(INVALID DIRECTION)',0
+00004064                          1467  *-------------------------------------------------------
+00004064                          1468  *------------------- STATS    
+00004064                          1469  *-------------------------------------------------------
+00004064                          1470  ;PLAYER
+00004064= 64                      1471  MAX_HEALTH DC.B $64
+00004065                          1472  
+00004065= 05                      1473  HEALTH DC.B $5 ;64
+00004066= 48 45 41 4C 54 48 ...   1474  HEALTH_MSG DC.B 'HEALTH: ',0
+0000406F                          1475  
+0000406F= 64                      1476  STAMINA DC.B $64
+00004070= 53 54 41 4D 49 4E ...   1477  STAMINA_MSG DC.B 'STAMINA: ',0
+0000407A                          1478  
+0000407A= 01                      1479  STAMINA_POTIONS DC.B 1
+0000407B= 53 54 41 4D 49 4E ...   1480  POTIONS_MSG DC.B 'STAMINA POTIONS: ',0
+0000408D                          1481  
+0000408D= 01                      1482  SPELL_SLOTS DC.B 1
+0000408E= 48 45 41 4C 20 53 ...   1483  SPELLS_MSG DC.B 'HEAL SPELLS: ',0
+0000409C                          1484  
+0000409C= 01                      1485  CAMPS DC.B 1
+0000409D= 43 41 4D 50 53 3A ...   1486  CAMPS_MSG DC.B 'CAMPS: ',0
+000040A5                          1487  
+000040A5= 05                      1488  STRENGTH DC.B $5
+000040A6= 53 54 52 45 4E 47 ...   1489  PLAYER_STRENGTH_MSG DC.B 'STRENGTH: ',0
+000040B1                          1490  
+000040B1= 32                      1491  GOLD DC.B 50
+000040B2= 47 4F 4C 44 3A 20 00    1492  GOLD_MSG DC.B 'GOLD: ',0
+000040B9                          1493  
+000040B9= 00                      1494  PLAYER_X DC.B 0
+000040BA= 58 20 50 4F 53 49 ...   1495  CURRENT_X_MSG DC.B 'X POSITION: ',0
+000040C7                          1496  
+000040C7= 00                      1497  PLAYER_Y DC.B 0
+000040C8= 59 20 50 4F 53 49 ...   1498  CURRENT_Y_MSG DC.B 'Y POSITION: ',0
+000040D5                          1499  
+000040D5                          1500  ;ENEMY
+000040D5= 01                      1501  ENEMY_STR DC.B $1
+000040D6= 45 4E 45 4D 59 20 ...   1502  ENEMY_STRENGTH_MSG DC.B 'ENEMY STRENGHT: ',0
+000040E7                          1503  
+000040E7                          1504  ;BOSS
+000040E7= 03                      1505  BOSS_STR DC.B $3
+000040E8= 42 4F 53 53 20 53 ...   1506  BOSS_STRENGTH_MSG DC.B 'BOSS STRENGHT: ',0
+000040F8                          1507  
+000040F8                          1508  *-------------------------------------------------------
+000040F8                          1509  *------------------- MAP AND TILES    
+000040F8                          1510  *-------------------------------------------------------
+000040F8                          1511  ;LEVEL MAP
+000040F8= 00 00 00 00             1512  MAP_ROW1 DC.B 0,0,0,0
+000040FC= 00 00 00 00             1513  MAP_ROW2 DC.B 0,0,0,0
+00004100= 00 00 00 00             1514  MAP_ROW3 DC.B 0,0,0,0  
+00004104= 00 00 00 00             1515  MAP_ROW4 DC.B 0,0,0,0
+00004108                          1516  
+00004108                          1517  ;ENEMY TILE 1
+00004108= 41 20 45 4E 45 4D ...   1518  ENEMY_MSG DC.B 'A ENEMY APPEARS.',0
+00004119= 44 4F 20 59 4F 55 ...   1519  FIGHT_MSG DC.B 'DO YOU WANT TO FIGHT? 1=NO 2=YES',0 ;RE-USE FOR BOSS FIGHT
+0000413A                          1520  
+0000413A                          1521  ;FOREST TILE 2
+0000413A= 59 4F 55 20 45 4E ...   1522  FOREST_MSG DC.B 'YOU ENTER A FOREST.',0
+0000414E= 53 45 41 52 43 48 ...   1523  SEARCH_MSG DC.B 'SEARCHING FOR ITEMS.',0
+00004163= 4E 4F 20 49 54 45 ...   1524  NO_ITEM_MSG DC.B 'NO ITEMS FOUND.',0
+00004173= 59 4F 55 20 46 4F ...   1525  FOUND_MSG DC.B 'YOU FOUND AN ITEM',0
+00004185                          1526  
+00004185                          1527  ;MOUNTAIN TILE 3
+00004185= 59 4F 55 20 57 41 ...   1528  MOUNTAIN_MSG DC.B 'YOU WANDER THROUGH THE MOUNTAINS.',0
+000041A7                          1529  
+000041A7                          1530  ;BEACH TILE 4
+000041A7= 59 4F 55 20 54 41 ...   1531  BEACH_MSG DC.B 'YOU TAKE A STROLL ON THE BEACH', 0
+000041C6                          1532  
+000041C6                          1533  ;TOWN TILE  5
+000041C6= 59 4F 55 20 45 4E ...   1534  TOWN_MSG DC.B 'YOU ENTER A CASTLE TOWN. YOU SEE A ITEM SHOP.',0
+000041F4= 44 4F 20 59 4F 55 ...   1535  SHOP_MSG DC.B 'DO YOU WANT TO BUY A ITEM? 1=STAMINA POTION (10G) 2=WEAPON UPGRADE (20G) 3=EXIT',0
+00004244= 59 4F 55 20 42 4F ...   1536  BOUGHT_STAMINA_MSG DC.B 'YOU BOUGHT A STAMINA POTION. (RESTORES 30 STAMINA)',0
+00004277= 59 4F 55 20 47 4F ...   1537  BOUGHT_WEAPON_MSG DC.B 'YOU GOT YOUR WEAPON UPGRADED. (STRENGHT+3)',0
+000042A2= 59 4F 55 20 53 54 ...   1538  INN_MSG DC.B 'YOU STAY THE NIGHT AT A INN. COMPLETELY RECOVERED.',0
+000042D5= 59 4F 55 20 45 58 ...   1539  EXIT_SHOP_MSG DC.B 'YOU EXIT THE ITEM SHOP.',0
+000042ED                          1540  
+000042ED                          1541  ;FIELD TILE 6
+000042ED= 41 20 57 49 44 45 ...   1542  FIELD_MSG DC.B 'A WIDE SAFE FIELD.',0
+00004300= 53 45 54 20 55 50 ...   1543  CAMP_MSG DC.B 'SET UP CAMP?  1=NO 2=YES',0
+00004319= 43 41 4D 50 20 55 ...   1544  CAMP_USED_MSG DC.B 'CAMP USED, STAMINA AND HEALTH FULLY RESTORED.',0
+00004347= 59 4F 55 20 43 48 ...   1545  NO_CAMP_MSG DC.B 'YOU CHOOSE NOT TO CAMP.',0
+0000435F                          1546  
+0000435F                          1547  ;EXIT TILE 7
+0000435F= 42 4F 41 54 20 46 ...   1548  BOAT_MSG DC.B 'BOAT FOUND. ESCAPING ISLAND TO SAFETY.',0
+00004386                          1549  
+00004386                          1550  ;BOSS TILE 8
+00004386= 54 48 45 20 42 4F ...   1551  BOSS_MSG DC.B 'THE BOSS APPEARS.',0
+00004398= 42 4F 53 53 20 44 ...   1552  BOSS_VICTORY_MSG DC.B 'BOSS DEFEATED.',0
+000043A7                          1553  
+000043A7                          1554  ;PORTAL TILE 9
+000043A7= 59 4F 55 20 45 4E ...   1555  NEXT_LVL_MSG DC.B 'YOU ENTER A MAGIC PORTAL AND END UP SOMEWHERE UNKNOWN.',0
+000043DE                          1556  
+000043DE                          1557  ;REWARDS FIGHT AND PICKUP
+000043DE= 53 54 41 4D 49 4E ...   1558  POTION_OBTAINED_MSG DC.B 'STAMINA POTION OBTAINED.',0
+000043F7= 43 41 4D 50 20 53 ...   1559  CAMP_SUPLIIES_MSG DC.B 'CAMP SUPPLIES OBTAINED.',0
+0000440F                          1560  *-------------------------------------------------------
+0000440F                          1561  *------------------- FIGHT MESSAGES    
+0000440F                          1562  *-------------------------------------------------------
+0000440F                          1563  ;LOSE
+0000440F= 59 4F 55 52 20 48 ...   1564  DEATH_MSG DC.B 'YOUR HEALTH IS 0. YOU DIED.', 0
+0000442B                          1565  
+0000442B                          1566  ;WIN
+0000442B= 45 4E 45 4D 59 20 ...   1567  VICTORY_MSG DC.B 'ENEMY DEFEATED.',0
+0000443B= 54 48 45 20 45 4E ...   1568  DROP_MSG DC.B 'THE ENEMY DROPPED AN ITEM.',0
+00004456                          1569  *-------------------------------------------------------
+00004456                          1570  *------------------- END PROGRAM    
+00004456                          1571  *-------------------------------------------------------
+00004456                          1572  
+00004456                          1573      END    START 
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+A                   41
+ADD_BOSS            324C
+ADD_CAMP            3298
+ADD_EXIT            325E
+ADD_PORTAL          3270
+ADD_TOWN            32B8
+BEACH               4
+BEACH_MSG           41A7
+BOAT                1
+BOAT_MSG            435F
+BOSS                0
+BOSS_MSG            4386
+BOSS_STATS_UP       3CF0
+BOSS_STR            40E7
+BOSS_STRENGTH_MSG   40E8
+BOSS_TILE           8
+BOSS_VICTORY_MSG    4398
+BOUGHT_STAMINA_MSG  4244
+BOUGHT_WEAPON_MSG   4277
+CAMPS               409C
+CAMPS_MSG           409D
+CAMP_MSG            4300
+CAMP_SUPLIIES_MSG   43F7
+CAMP_USED_MSG       4319
+CHECK_MISSION       3036
+CHECK_X_POS_ROW1    33F0
+CHECK_X_POS_ROW2    3404
+CHECK_X_POS_ROW3    3418
+CHECK_X_POS_ROW4    342C
+CHECK_Y_POS         33CA
+CRLF                3D37
+CURRENT_LEVEL_MSG   3D29
+CURRENT_X_MSG       40BA
+CURRENT_Y_MSG       40C8
+D                   44
+DEATH_MSG           440F
+DEFEAT_BOSS_MSG     3EF7
+DELAY               394A
+DRAW_HUD            3BEA
+DRAW_NEWLINE        3BDC
+DRAW_NUMBER         3BD4
+DRAW_STRING         3BCC
+DROP_MSG            443B
+EAST_MSG            400A
+ENDLESS             30C6
+ENDLESS_INTRO       3108
+ENDLESS_LOOP        30EA
+ENDLESS_MODE_MSG    3DAE
+ENDLESS_PLAYER      3376
+ENEMY_MSG           4108
+ENEMY_STATS_UP      38D6
+ENEMY_STR           40D5
+ENEMY_STRENGTH_MSG  40D6
+ENEMY_TILE          1
+ENTER_BEACH         3592
+ENTER_BOAT          36C4
+ENTER_BOSS          36D6
+ENTER_ENEMY         3494
+ENTER_FIELD         3670
+ENTER_FOREST        34E8
+ENTER_MOUNTAIN      34D6
+ENTER_PORTAL        36E8
+ENTER_TILE          344C
+ENTER_TOWN          35A4
+EQUIP_MSG           3DE0
+EXIT                3D24
+EXIT_SHOP           35EE
+EXIT_SHOP_MSG       42D5
+EXIT_TILE           7
+FIELD               6
+FIELD_MSG           42ED
+FIGHT_BOSS          37C8
+FIGHT_ENEMY         37B0
+FIGHT_MSG           4119
+FIND_EXIT_MSG       3F08
+FOREST              3
+FOREST_MSG          413A
+FOUND_MSG           4173
+FOUR                34
+GAME_COMPLETE       3D00
+GAME_COMPLETE_MSG   3F4F
+GAME_END_MSG        3F3A
+GAME_OVER           3D12
+GAME_OVER_MSG       3F17
+GET_CAMP            3572
+GET_INPUT           3BB4
+GET_POTION          3532
+GET_SEED            393A
+GET_WEAPON          3552
+GOLD                40B1
+GOLD_MSG            40B2
+HEALTH              4065
+HEALTH_MSG          4066
+HEAL_MSG            3FAC
+INCREASE_LEVEL      3CDE
+INN_MSG             42A2
+INSUFFICIENT_RESOURCES  37A0
+INVALID_DIRECTION_MSG  4028
+INVALID_EAST        3B10
+INVALID_INPUT       3D3A
+INVALID_INPUTS      3BBC
+INVALID_MOVEMENT    3B78
+INVALID_MOVEMENT_CHECK_E  3B6A
+INVALID_MOVEMENT_CHECK_N  3B3A
+INVALID_MOVEMENT_CHECK_S  3B5A
+INVALID_MOVEMENT_CHECK_W  3B4A
+INVALID_MOVEMENT_E  3B28
+INVALID_MOVEMENT_N  3A02
+INVALID_MOVEMENT_S  3A64
+INVALID_MOVEMENT_W  3AC6
+INVALID_MOVE_INPUT  3B9E
+INVALID_NORTH       39EA
+INVALID_SOUTH       3A4C
+INVALID_WEST        3AAE
+LEARN_HEAL_MSG      3DFA
+LEVEL               3D31
+LOAD_BOAT_MAP       3194
+LOAD_BOSS_ENDLESS_MAP  312C
+LOAD_BOSS_MAP       3158
+LOAD_PORTAL_MAP     31D4
+LOAD_ROW_1          32D8
+LOAD_ROW_2          32EA
+LOAD_ROW_3          32FC
+LOAD_ROW_4          330E
+LOAD_VALUE          3320
+LOOP_MAP_ROW        3440
+LOSE_FIGHT          381E
+LOSE_HEALTH         3854
+MAPVALUE            3D36
+MAP_LOOP            33B8
+MAP_ROW1            40F8
+MAP_ROW2            40FC
+MAP_ROW3            4100
+MAP_ROW4            4104
+MAX_HEALTH          4064
+MAX_LEVEL_MISSIONS  1
+MIN_ALL             0
+MISSION             3048
+MISSION_INTRO       306A
+MISSION_MODE_MSG    3D98
+MISSION_PLAYER      3334
+MODE                3000
+MODE_INPUT          3014
+MODE_MSG            3D55
+MODE_TEST           3D28
+MOUNTAIN            2
+MOUNTAIN_MSG        4185
+MOVE_COST_MSG       3E2A
+MOVE_EAST           3AD8
+MOVE_MSG            3FCF
+MOVE_NORTH          39B2
+MOVE_PLAYER         3954
+MOVE_SOUTH          3A14
+MOVE_WEST           3A76
+NEXT_LEVEL          3CAE
+NEXT_LVL_MSG        43A7
+NORTH_MSG           3FEA
+NOT_CAMP            36B2
+NO_CAMPS            375E
+NO_CAMP_MSG         4347
+NO_GOLD             3668
+NO_ITEMS_MSG        3F94
+NO_ITEM_MSG         4163
+NO_POTIONS          371E
+NO_SPELLS           3798
+OBTAIN_CAMP         3892
+OBTAIN_GOLD         387C
+OBTAIN_POTION       3868
+ONE                 31
+PLAYER_HEAL         3766
+PLAYER_HEALTH_UP    38A6
+PLAYER_SPELL_UP     38B6
+PLAYER_STRENGTH_MSG  40A6
+PLAYER_STR_UP       38C6
+PLAYER_X            40B9
+PLAYER_Y            40C7
+PORTAL_TILE         9
+POTIONS_MSG         407B
+POTION_OBTAINED_MSG  43DE
+POTION_USED_MSG     3F67
+RESET_PLAYER_POS    3CCC
+REWARD              382C
+RNG_0_1             38E6
+RNG_1_3             391E
+RNG_1_4             3902
+S                   53
+SEARCH_MSG          414E
+SEED                3D32
+SHOP_1              3600
+SHOP_2              3634
+SHOP_MSG            41F4
+SOUTH_MSG           3FFA
+SPELLS_MSG          408E
+SPELL_SLOTS         408D
+STAMINA             406F
+STAMINA_MSG         4070
+STAMINA_POTIONS     407A
+START               1000
+START_COORD_MSG     3E8B
+START_MSG           3D49
+STRENGTH            40A5
+SURVIVE_MSG         3EDA
+THREE               33
+TOWN                5
+TOWN_MSG            41C6
+TWO                 32
+UPDATE_MAP          31F6
+UPDATE_ROW          3238
+USE_CAMP            3726
+USE_STAMINA_POTION  36FA
+VICTORY_MSG         442B
+W                   57
+WASD_MSG            3E4E
+WELCOME_MSG         3DC4
+WEST_MSG            4019
+WIN_BOSS_FIGHT      3804
+WIN_FIGHT           37E0

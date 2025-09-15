@@ -1,0 +1,50 @@
+    ORG    $1000
+START:   
+    LEA HEALTH, A3
+    LEA BOSS_HEALTH, A4
+    
+    BSR PLAYER_TURN
+
+PLAYER_TURN:
+    ;IF LESS THAN 50 HEAL ELSE ATTACK
+    CMP.B #50, (A3)
+    BLT PLAYER_HEAL
+    BGT PLAYER_ATTACK
+
+BOSS_TURN:
+    BRA BOSS_ATTACK
+    
+PLAYER_ATTACK:
+    SUB.B #10, (A4)
+    ;CHECK BOSS HEALTH IF 0 GAME OVER
+    CMP.B #0, (A4)
+    BEQ GAME_END
+    BNE BOSS_TURN
+    
+PLAYER_HEAL:
+    ADD.B #60, (A3)
+    BRA BOSS_TURN
+
+BOSS_ATTACK:
+    SUB.B #20, (A3)
+    BRA PLAYER_TURN
+    
+GAME_END:
+    MOVE.B #$00, HEALTH
+    MOVE.B #$00, BOSS_HEALTH
+    RTS
+
+    SIMHALT             
+    
+HEALTH DC.B $64
+BOSS_HEALTH DC.B $64
+
+    END    START       
+
+
+
+
+*~Font name~Courier New~
+*~Font size~10~
+*~Tab type~1~
+*~Tab size~4~
