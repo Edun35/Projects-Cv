@@ -1,4 +1,4 @@
 # Cv code examples
 
-code examples from cs50, gd50 and some college projects
+code examples from Harvards Computer Science CS50, Harvards Game Dev GD50 and some college projects
 
